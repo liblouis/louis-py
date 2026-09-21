@@ -358,7 +358,7 @@ dependencies = [
 [[package]]
 name = "louis-rs"
 version = "0.2.8"
-source = "git+https://github.com/liblouis/louis-rs?branch=main#5f380cc6186dad568ccaf523075b391248c01a3b"
+source = "git+https://github.com/liblouis/louis-rs?branch=main#c454d7347f2fd1fa0e62ef795647a9b9f5f20758"
 dependencies = [
  "clap",
  "enumset",
