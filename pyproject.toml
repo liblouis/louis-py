@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "louis-py"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Python bindings for the louis braille translator"
 requires-python = ">=3.11"
 license = { text = "LGPL-2.1-or-later" }

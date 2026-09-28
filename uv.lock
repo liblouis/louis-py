@@ -22,7 +22,6 @@ wheels = [
 
 [[package]]
 name = "louis-py"
-version = "0.1.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
