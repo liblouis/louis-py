@@ -5,7 +5,7 @@ publish = false
 edition = "2024"
 description = "Python bindings for the louis braille translator"
 license = "LGPL-2.1-or-later"
-repository = "https://github.com/LeonarddeR/louis-py"
+repository = "https://github.com/liblouis/louis-py"
 
 [lib]
 name = "_louis_py"
