@@ -7,8 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 This changelog covers the Python bindings only. Changes to translation itself
 are listed in the
 [louis-rs changelog](https://github.com/liblouis/louis-rs/blob/main/CHANGELOG.md).
+Each release names the louis-rs version it is built on.
 
-## [Unreleased]
+<!-- next-header -->
+
+## [Unreleased] - ReleaseDate
 
 First release of louis-py, Python bindings for the
 [louis-rs](https://github.com/liblouis/louis-rs) braille translator, built on
@@ -40,3 +43,6 @@ louis-rs 0.3.0 from crates.io.
 - Exception hierarchy: `LouisError`, `TableParseError`, `TranslationError`.
 - Type stubs (`_louis_py.pyi`) and `py.typed` marker.
 - Built with maturin, `abi3-py311` (single wheel for Python 3.11+).
+
+<!-- next-url -->
+[Unreleased]: https://github.com/liblouis/louis-py/compare/5ca872bf133effa74e3d2e16b7a4647c8a57a4b4...HEAD

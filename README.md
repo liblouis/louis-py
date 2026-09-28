@@ -30,3 +30,13 @@ t = Translator(["en-ueb-g2.ctb"], search_path=[nvda_tables, addon_tables])
 ```
 
 See `python/louis_py/_louis_py.pyi` for the full API.
+
+## Releasing
+
+1. Run `cargo release <level> --execute`, where `<level>` is `patch`, `minor`
+   or `major`. Without `--execute` it only shows what it would do. It raises
+   the version in `Cargo.toml`, dates the `[Unreleased]` section of the
+   changelog, commits, tags `vX.Y.Z` and pushes. It does not publish to
+   crates.io.
+2. Publish a GitHub Release for the new tag. The `python-wheels` workflow then
+   uploads the wheels and the sdist to PyPI.
