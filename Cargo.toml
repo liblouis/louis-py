@@ -12,5 +12,5 @@ name = "_louis_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-louis-rs = "0.3.0"
+louis-rs = { git = "https://github.com/liblouis/louis-rs", branch = "main" }
 pyo3 = { version = "0.29", features = ["extension-module", "abi3-py311"] }

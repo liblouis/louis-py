@@ -358,8 +358,7 @@ dependencies = [
 [[package]]
 name = "louis-rs"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f76b04ff2b445b6c60f0946e63fcbb3018e44da09c96cf771145b7686222998"
+source = "git+https://github.com/liblouis/louis-rs?branch=main#f7cfc20cb0bc2e200272acc5d939a1f5cb44ed2d"
 dependencies = [
  "clap",
  "enumset",
