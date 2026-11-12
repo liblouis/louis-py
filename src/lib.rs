@@ -19,24 +19,33 @@ create_exception!(
 );
 create_exception!(
     _louis_py,
-    TranslationError,
+    TableCompileError,
     LouisError,
-    "Raised when translation fails."
+    "Raised when a rule of a braille table refers to something no rule defines."
 );
 
-/// Wrap a `louis::TranslationError` into the appropriate Python exception.
+/// Wrap a `louis::Error` into the appropriate Python exception.
 /// Re-attaches to the interpreter so it can be used directly in `.map_err`.
-fn to_pyerr(err: louis::TranslationError) -> PyErr {
+fn to_pyerr(err: louis::Error) -> PyErr {
     match err {
-        louis::TranslationError::ParseFailed(errs) => {
+        louis::Error::Table(ref errs) => {
             let msgs: Vec<String> = errs.iter().map(ToString::to_string).collect();
-            let exc = TableParseError::new_err("Errors when reading given braille table(s)");
+            let exc = TableParseError::new_err(err.to_string());
             Python::attach(|py| {
                 let _ = exc.value(py).setattr("errors", msgs);
             });
             exc
         }
-        other => TranslationError::new_err(format!("{other}")),
+        louis::Error::Compile(ref compile) => {
+            let exc = TableCompileError::new_err(err.to_string());
+            Python::attach(|py| {
+                let value = exc.value(py);
+                let _ = value.setattr("path", compile.path());
+                let _ = value.setattr("line", compile.line());
+            });
+            exc
+        }
+        other => LouisError::new_err(other.to_string()),
     }
 }
 
@@ -89,43 +98,44 @@ impl From<Direction> for louis::Direction {
     }
 }
 
-/// The result of a translation. Mirrors `louis::TranslationResult` minus `spacing`.
+/// The result of a translation. Mirrors `louis::TranslationResult`.
 #[pyclass(frozen, get_all)]
 pub struct TranslationResult {
     pub output: String,
     pub emphasis: Option<Vec<(String, usize, usize)>>,
-    pub output_positions: Option<Vec<usize>>,
-    pub input_positions: Option<Vec<usize>>,
-    pub cursor_pos: Option<usize>,
+    pub output_positions: Vec<usize>,
+    pub input_positions: Vec<usize>,
+    pub cursor_position: Option<usize>,
 }
 
 #[pymethods]
 impl TranslationResult {
     fn __repr__(&self) -> String {
         format!(
-            "TranslationResult(output={:?}, emphasis={:?}, output_positions={:?}, input_positions={:?}, cursor_pos={:?})",
+            "TranslationResult(output={:?}, emphasis={:?}, output_positions={:?}, input_positions={:?}, cursor_position={:?})",
             self.output,
             self.emphasis,
             self.output_positions,
             self.input_positions,
-            self.cursor_pos
+            self.cursor_position
         )
     }
 }
 
 impl TranslationResult {
-    fn from_rust(r: louis::TranslationResult) -> Self {
+    fn from_rust(r: &louis::TranslationResult) -> Self {
         Self {
-            output: r.output,
-            emphasis: r.emphasis.map(|spans| {
-                spans
-                    .into_iter()
-                    .map(|s| (s.class, s.range.start, s.range.end))
+            output: r.output().to_owned(),
+            emphasis: r.emphasis().map(|emphasis| {
+                emphasis
+                    .spans()
+                    .iter()
+                    .map(|s| (s.class().to_owned(), s.range().start, s.range().end))
                     .collect()
             }),
-            output_positions: r.output_positions,
-            input_positions: r.input_positions,
-            cursor_pos: r.cursor_pos,
+            output_positions: r.output_positions().to_vec(),
+            input_positions: r.input_positions().to_vec(),
+            cursor_position: r.cursor_position(),
         }
     }
 }
@@ -174,39 +184,37 @@ impl Translator {
         Ok(Self { inner })
     }
 
-    /// Translate `text` to braille.
-    fn translate(&self, py: Python<'_>, text: &str) -> PyResult<String> {
-        py.detach(|| self.inner.translate(text)).map_err(to_pyerr)
+    /// Translate `text`.
+    fn translate(&self, py: Python<'_>, text: &str) -> String {
+        py.detach(|| self.inner.translate(text))
     }
 
-    /// Translate `text` to braille with full options.
-    #[pyo3(signature = (text, *, mode = 0, emphasis = None, cursor_pos = None))]
+    /// Translate `text` with options, and report which input became which output.
+    #[pyo3(signature = (text, *, mode = 0, emphasis = None, cursor_position = None))]
     fn translate_with_options(
         &self,
         py: Python<'_>,
         text: &str,
         mode: u32,
         emphasis: Option<Vec<(String, usize, usize)>>,
-        cursor_pos: Option<usize>,
+        cursor_position: Option<usize>,
     ) -> PyResult<TranslationResult> {
         let modes = modes_from_bits(mode).ok_or_else(|| {
             PyValueError::new_err(format!("invalid translation mode bits: {mode:#x}"))
         })?;
-        let mut options = louis::TranslationOptions::default().with_mode(modes);
+        let mut options = louis::TranslationOptions::default().with_modes(modes);
         if let Some(spans) = emphasis {
-            let rust_spans: Vec<louis::EmphasisSpan> = spans
+            let emphasis: louis::Emphasis = spans
                 .into_iter()
                 .map(|(class, start, end)| louis::EmphasisSpan::new(class, start..end))
                 .collect();
-            options = options.with_emphasis(rust_spans);
+            options = options.with_emphasis(emphasis);
         }
-        if let Some(pos) = cursor_pos {
-            options = options.with_cursor_pos(pos);
+        if let Some(position) = cursor_position {
+            options = options.with_cursor_position(position);
         }
-        let result = py
-            .detach(|| self.inner.translate_with_options(text, options))
-            .map_err(to_pyerr)?;
-        Ok(TranslationResult::from_rust(result))
+        let result = py.detach(|| self.inner.translate_with_options(text, &options));
+        Ok(TranslationResult::from_rust(&result))
     }
 }
 
@@ -221,6 +229,6 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TranslationResult>()?;
     m.add("LouisError", py.get_type::<LouisError>())?;
     m.add("TableParseError", py.get_type::<TableParseError>())?;
-    m.add("TranslationError", py.get_type::<TranslationError>())?;
+    m.add("TableCompileError", py.get_type::<TableCompileError>())?;
     Ok(())
 }

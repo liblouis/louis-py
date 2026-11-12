@@ -1,0 +1,4 @@
+# Parses, but does not compile: the base character of "A" is never defined.
+space \s 0
+letter b 12
+base uppercase A a

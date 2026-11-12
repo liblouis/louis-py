@@ -9,14 +9,41 @@ def test_bogus_table_raises_table_parse_error():
 
     exc = excinfo.value
     assert isinstance(exc, LouisError)
+    assert "definitely-not-a-real-table.ctb" in str(exc)
     assert isinstance(exc.errors, list)
     assert len(exc.errors) >= 1
     assert all(isinstance(e, str) for e in exc.errors)
 
 
 def test_exception_hierarchy():
-    from louis_py import LouisError, TableParseError, TranslationError
+    from louis_py import LouisError, TableCompileError, TableParseError
 
     assert issubclass(TableParseError, LouisError)
-    assert issubclass(TranslationError, LouisError)
+    assert issubclass(TableCompileError, LouisError)
     assert issubclass(LouisError, Exception)
+
+
+def test_compile_error_in_table_source_has_line_but_no_path():
+    from louis_py import TableCompileError, Translator
+
+    with pytest.raises(TableCompileError) as excinfo:
+        Translator.from_table_source("base uppercase A a\n")
+
+    exc = excinfo.value
+    assert str(exc) == "line 1: base character 'a' of 'A' not defined"
+    assert exc.path is None
+    assert exc.line == 1
+
+
+def test_compile_error_in_table_file_names_the_table():
+    from pathlib import Path
+
+    from louis_py import TableCompileError, Translator
+
+    with pytest.raises(TableCompileError) as excinfo:
+        Translator(["undefined-base.ctb"])
+
+    exc = excinfo.value
+    assert isinstance(exc.path, Path)
+    assert exc.path.name == "undefined-base.ctb"
+    assert exc.line == 4

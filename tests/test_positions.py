@@ -29,16 +29,16 @@ def test_cursor_is_translated_only_when_given():
     from louis_py import Translator
 
     t = Translator.from_table_source(NUMBER_TABLE)
-    assert t.translate_with_options("a 42").cursor_pos is None
-    assert t.translate_with_options("a 42", cursor_pos=2).cursor_pos == 2
+    assert t.translate_with_options("a 42").cursor_position is None
+    assert t.translate_with_options("a 42", cursor_position=2).cursor_position == 2
 
 
 def test_cursor_past_the_end_maps_past_the_end():
     from louis_py import Translator
 
     t = Translator.from_table_source(NUMBER_TABLE)
-    r = t.translate_with_options("a 42", cursor_pos=4)
-    assert r.cursor_pos == len(r.output) == 5
+    r = t.translate_with_options("a 42", cursor_position=4)
+    assert r.cursor_position == len(r.output) == 5
 
 
 def test_backward_positions():
@@ -61,8 +61,8 @@ def test_positions_count_characters_not_utf8_bytes():
     table = "space \\s 0\nletter a 1\nsign " + EMOJI + " 1234\n"
     t = Translator.from_table_source(table)
     text = "a" + EMOJI + "a"
-    r = t.translate_with_options(text, cursor_pos=2)
+    r = t.translate_with_options(text, cursor_position=2)
     assert len(text) == 3
     assert r.output_positions == [0, 1, 2]
     assert r.input_positions == [0, 1, 2]
-    assert r.cursor_pos == 2
+    assert r.cursor_position == 2

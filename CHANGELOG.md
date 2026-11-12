@@ -30,17 +30,28 @@ louis-rs 0.3.0 from crates.io.
 - `Translator.from_table_source(table, direction=Direction.FORWARD)`: build a
   translator from raw table source text held in memory. Does not resolve
   `include` directives; table text containing one raises `TableParseError`.
-- `Direction` enum and `TranslationMode` flags (`enum.IntFlag`).
+- `Direction` enum and `TranslationMode` flags (`enum.IntFlag`), passed to
+  `Translator.translate_with_options` as `mode=`. `COMPBRL_AT_CURSOR` and
+  `COMPBRL_LEFT_CURSOR` show the word at the cursor, or its part before the
+  cursor, uncontracted in computer braille. `NO_UNDEFINED` drops characters
+  and cells the tables do not define. `PARTIAL_TRANS` back-translates braille
+  that may end in the middle of a word, such as the cells typed so far.
+  `NO_CONTRACTIONS`, `DOTS_IO` and `UC_BRL` are accepted but not implemented
+  in louis-rs yet.
 - `TranslationResult` and `EmphasisSpan` result types.
-- Position mapping on `TranslationResult`, filled in by
+- Position mapping on `TranslationResult`, returned by
   `Translator.translate_with_options`. `output_positions[i]` is the index of
   the braille cell that the input character at index `i` translated to, and
   `input_positions[j]` is the index of the input character that the braille
   cell at index `j` came from. Both count characters, so they index the input
-  and output strings directly. `cursor_pos` holds the translated position of
-  the cursor passed as `cursor_pos=`, and stays `None` when none is passed; a
-  cursor past the end of the input maps past the end of the output.
-- Exception hierarchy: `LouisError`, `TableParseError`, `TranslationError`.
+  and output strings directly. `cursor_position` holds the translated position
+  of the cursor passed as `cursor_position=`, and stays `None` when none is
+  passed; a cursor past the end of the input maps past the end of the output.
+- Exception hierarchy: `LouisError`, with `TableParseError` when a table cannot
+  be found, read or parsed, and `TableCompileError` when a rule refers to
+  something no rule defines. `TableParseError.errors` lists every problem;
+  `TableCompileError.path` and `.line` say where the rule is, `path` being
+  `None` for table source given in memory. Translating itself cannot fail.
 - Type stubs (`_louis_py.pyi`) and `py.typed` marker.
 - Built with maturin, `abi3-py311` (single wheel for Python 3.11+).
 

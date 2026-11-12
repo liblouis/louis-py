@@ -13,11 +13,22 @@ print(t.translate("hello world"))  # ⠓⠑⠇⠇⠕⠀⠺⠕⠗⠇⠙
 `translate_with_options` additionally reports where every character ended up:
 
 ```python
-r = t.translate_with_options("Hello", cursor_pos=1)
+r = t.translate_with_options("Hello", cursor_position=1)
 r.output  # the braille text
 r.output_positions  # for each input character, the index of its braille cell
 r.input_positions  # for each braille cell, the index of its input character
-r.cursor_pos  # index in r.output of the cursor passed in
+r.cursor_position  # index in r.output of the cursor passed in
+```
+
+It also takes liblouis's translation modes, such as showing the word at the
+cursor in computer braille:
+
+```python
+from louis_py import TranslationMode
+
+r = t.translate_with_options(
+    "hello world", mode=TranslationMode.COMPBRL_AT_CURSOR, cursor_position=1
+)
 ```
 
 Table names and their `include` lines are looked up in the directories given as

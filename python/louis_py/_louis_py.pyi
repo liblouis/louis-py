@@ -1,4 +1,5 @@
 import os
+import pathlib
 from collections.abc import Sequence
 
 class Direction:
@@ -11,14 +12,14 @@ class TranslationResult:
     emphasis: list[tuple[str, int, int]] | None
     # output_positions[i] is the index in `output` of the cell that the input
     # character at index i translated to. One entry per input character.
-    output_positions: list[int] | None
+    output_positions: list[int]
     # input_positions[j] is the index in the input text of the character that
     # `output[j]` came from. One entry per output cell.
-    input_positions: list[int] | None
-    # The position of the `cursor_pos=` argument translated into `output`, or
-    # None when no cursor was passed. Equals len(output) for a cursor past the
-    # end of the input.
-    cursor_pos: int | None
+    input_positions: list[int]
+    # The position of the `cursor_position=` argument translated into
+    # `output`, or None when no cursor was passed. Equals len(output) for a
+    # cursor past the end of the input.
+    cursor_position: int | None
 
 class Translator:
     def __init__(
@@ -42,16 +43,24 @@ class Translator:
         self,
         text: str,
         *,
+        # TranslationMode flags. COMPBRL_AT_CURSOR, COMPBRL_LEFT_CURSOR,
+        # NO_UNDEFINED and PARTIAL_TRANS take effect; the others are ignored.
         mode: int = ...,
         emphasis: list[tuple[str, int, int]] | None = ...,
-        cursor_pos: int | None = ...,
+        cursor_position: int | None = ...,
     ) -> TranslationResult: ...
 
 class LouisError(Exception): ...
 
 class TableParseError(LouisError):
+    # One message per table that could not be found, read or parsed.
     errors: list[str]
 
-class TranslationError(LouisError): ...
+class TableCompileError(LouisError):
+    # The table of the rule that failed to compile, or None for table source
+    # given in memory.
+    path: pathlib.Path | None
+    # The line of that rule, counting from 1.
+    line: int
 
 __version__: str
