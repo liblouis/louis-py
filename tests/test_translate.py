@@ -1,5 +1,5 @@
 def test_forward_translate_hello_world():
-    from louis_py import Translator, Direction
+    from louis_py import Direction, Translator
 
     t = Translator(["mini.ctb"], Direction.FORWARD)
     assert t.translate("hello world") == "⠓⠑⠇⠇⠕⠀⠺⠕⠗⠇⠙"
