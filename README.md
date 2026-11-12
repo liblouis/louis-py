@@ -31,6 +31,17 @@ r = t.translate_with_options(
 )
 ```
 
+Emphasis is passed as `(class, start, end)` spans over the input, and
+back-translation returns the emphasis its braille indicates the same way.
+`t.emphasis_classes` lists the class names the tables declare:
+
+```python
+from louis_py import EmphasisSpan
+
+t.emphasis_classes  # e.g. ["italic", "underline", "bold"]
+t.translate_with_options("Hello", emphasis=[EmphasisSpan("bold", 0, 5)])
+```
+
 Table names and their `include` lines are looked up in the directories given as
 `search_path=`, in order, or in `LOUIS_TABLE_PATH` when it is omitted. Nothing
 else is searched, so a host that manages its own table directories lists them

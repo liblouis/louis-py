@@ -184,6 +184,17 @@ impl Translator {
         Ok(Self { inner })
     }
 
+    /// The emphasis classes the tables declare with `emphclass`, such as
+    /// `italic` or `bold`, in the order they declare them: the class names
+    /// emphasis spans can use.
+    #[getter]
+    fn emphasis_classes(&self) -> Vec<String> {
+        self.inner
+            .emphasis_classes()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
     /// Translate `text`.
     fn translate(&self, py: Python<'_>, text: &str) -> String {
         py.detach(|| self.inner.translate(text))

@@ -1,3 +1,11 @@
+import pytest
+
+ITALIC_TABLE = (
+    "space \\s 0\nlowercase a 1\nlowercase b 12\nemphclass italic\n"
+    "emphletter italic 46-23\nbegemphword italic 46-2\nendemphword italic 46-3\n"
+)
+
+
 def test_emphasis_span_namedtuple():
     from louis_py import EmphasisSpan
 
@@ -8,10 +16,63 @@ def test_emphasis_span_namedtuple():
     assert tuple(s) == ("italic", 0, 3)
 
 
-def test_emphasis_accepted_by_translate():
-    from louis_py import Translator, EmphasisSpan
+def test_forward_emphasis_adds_indicators():
+    from louis_py import EmphasisSpan, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE)
+    r = t.translate_with_options("ab", emphasis=[EmphasisSpan("italic", 0, 1)])
+    assert r.output == "⠨⠆⠁⠃"
+
+
+def test_undeclared_emphasis_class_is_ignored():
+    from louis_py import EmphasisSpan, Translator
 
     t = Translator(["mini.ctb"])
-    # Accepted without error; effect not asserted (pipeline gap).
     r = t.translate_with_options("abc", emphasis=[EmphasisSpan("italic", 0, 2)])
     assert r.output == "⠁⠃⠉"
+
+
+def test_forward_result_has_no_emphasis():
+    from louis_py import EmphasisSpan, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE)
+    r = t.translate_with_options("ab", emphasis=[EmphasisSpan("italic", 0, 1)])
+    assert r.emphasis is None
+
+
+@pytest.mark.parametrize(
+    ("braille", "text", "spans"),
+    [
+        # A single emphasized letter.
+        ("⠨⠆⠁⠃", "ab", [("italic", 0, 1)]),
+        # A word up to its end indicator.
+        ("⠃⠀⠨⠂⠁⠃⠨⠄⠁", "b aba", [("italic", 2, 4)]),
+        # A word without an end indicator ends at the space, which is not
+        # emphasized.
+        ("⠨⠂⠁⠃⠀⠁", "ab a", [("italic", 0, 2)]),
+        # No indicators, no spans.
+        ("⠁⠃", "ab", []),
+    ],
+)
+def test_back_translation_returns_the_emphasis(braille, text, spans):
+    from louis_py import Direction, EmphasisSpan, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE, Direction.BACKWARD)
+    r = t.translate_with_options(braille)
+    assert r.output == text
+    assert r.emphasis == spans
+    assert [EmphasisSpan(*span) for span in r.emphasis] == spans
+
+
+def test_emphasis_classes_in_declaration_order():
+    from louis_py import Translator
+
+    table = "emphclass italic\nemphclass bold\nemphclass italic\nletter a 1\n"
+    t = Translator.from_table_source(table)
+    assert t.emphasis_classes == ["italic", "bold"]
+
+
+def test_no_emphasis_classes():
+    from louis_py import Translator
+
+    assert Translator(["mini.ctb"]).emphasis_classes == []

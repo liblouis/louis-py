@@ -6,9 +6,8 @@ def test_translate_with_options_output():
     assert r.output == "⠁⠃⠉"
 
 
-def test_emphasis_not_populated_today():
-    # Encodes the remaining upstream limitation: the pipeline reports no
-    # emphasis spans. Flip this when it starts filling them.
+def test_forward_translation_reports_no_emphasis():
+    # Forward, the emphasis comes with the input, so the result has none.
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])

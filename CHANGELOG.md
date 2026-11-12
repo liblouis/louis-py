@@ -39,6 +39,13 @@ louis-rs 0.3.0 from crates.io.
   `NO_CONTRACTIONS`, `DOTS_IO` and `UC_BRL` are accepted but not implemented
   in louis-rs yet.
 - `TranslationResult` and `EmphasisSpan` result types.
+- Emphasis: `emphasis=` on `Translator.translate_with_options` takes
+  `(class, start, end)` spans over the input, such as `EmphasisSpan`s; a class
+  the tables do not declare is ignored. Back-translation returns the emphasis
+  the braille indicates in `TranslationResult.emphasis`, like liblouis's
+  typeform output, sorted by class and then by start; forward it is `None`.
+- `Translator.emphasis_classes`: the emphasis classes the tables declare with
+  `emphclass`, in declaration order, like liblouis's `lou_getEmphClasses`.
 - Position mapping on `TranslationResult`, returned by
   `Translator.translate_with_options`. `output_positions[i]` is the index of
   the braille cell that the input character at index `i` translated to, and

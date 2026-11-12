@@ -9,6 +9,11 @@ class Direction:
 
 class TranslationResult:
     output: str
+    # Backward, the emphasis of `output` as the braille's emphasis indicators
+    # give it (liblouis's typeform): (class, start, end) spans, sorted by
+    # class and then by start, with touching spans of a class merged. The
+    # space that ends an emphasized word is not emphasized. Forward, where the
+    # emphasis comes with the input, always None.
     emphasis: list[tuple[str, int, int]] | None
     # output_positions[i] is the index in `output` of the cell that the input
     # character at index i translated to. One entry per input character.
@@ -38,6 +43,10 @@ class Translator:
         table: str,
         direction: Direction = ...,
     ) -> Translator: ...
+    # The emphasis classes the tables declare with `emphclass`, in the order
+    # they declare them: the class names emphasis spans can use.
+    @property
+    def emphasis_classes(self) -> list[str]: ...
     def translate(self, text: str) -> str: ...
     def translate_with_options(
         self,
@@ -46,6 +55,8 @@ class Translator:
         # TranslationMode flags. COMPBRL_AT_CURSOR, COMPBRL_LEFT_CURSOR,
         # NO_UNDEFINED and PARTIAL_TRANS take effect; the others are ignored.
         mode: int = ...,
+        # (class, start, end) spans over the input, such as EmphasisSpan.
+        # Classes the tables do not declare are ignored.
         emphasis: list[tuple[str, int, int]] | None = ...,
         cursor_position: int | None = ...,
     ) -> TranslationResult: ...
