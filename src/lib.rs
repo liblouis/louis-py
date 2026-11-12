@@ -140,6 +140,53 @@ impl TranslationResult {
     }
 }
 
+/// Which characters stand for the braille cells, such as ASCII braille,
+/// loaded from a liblouis display table (`.dis`). Immutable and safe to share
+/// across threads; one encoding can serve translators in both directions.
+#[pyclass(frozen)]
+pub struct BrailleEncoding {
+    inner: louis::BrailleEncoding,
+}
+
+#[pymethods]
+impl BrailleEncoding {
+    /// Load the display table `table`, looking it and every `include` up in
+    /// `search_path` when given, otherwise in `LOUIS_TABLE_PATH`, as
+    /// `Translator` does.
+    #[new]
+    #[pyo3(signature = (table, *, search_path = None))]
+    fn new(py: Python<'_>, table: PathBuf, search_path: Option<Vec<PathBuf>>) -> PyResult<Self> {
+        let inner = py
+            .detach(|| match search_path {
+                Some(dirs) => louis::BrailleEncoding::with_search_path(&table, dirs),
+                None => louis::BrailleEncoding::new(&table),
+            })
+            .map_err(to_pyerr)?;
+        Ok(Self { inner })
+    }
+
+    /// Build an encoding from raw display table source text. Does not resolve
+    /// `include` directives.
+    #[staticmethod]
+    fn from_table_source(py: Python<'_>, table: &str) -> PyResult<Self> {
+        let inner = py
+            .detach(|| louis::BrailleEncoding::from_table_source(table))
+            .map_err(to_pyerr)?;
+        Ok(Self { inner })
+    }
+}
+
+/// `translator`, reading and writing braille in `encoding` when one is given.
+fn encoded(
+    translator: louis::Translator,
+    encoding: Option<&louis::BrailleEncoding>,
+) -> louis::Translator {
+    match encoding {
+        Some(encoding) => translator.with_braille_encoding(encoding),
+        None => translator,
+    }
+}
+
 /// A compiled braille translator. Immutable and safe to share across threads.
 #[pyclass(frozen)]
 pub struct Translator {
@@ -153,20 +200,33 @@ impl Translator {
     /// platform separator, `.` when unset). Names are joined onto each entry in
     /// order and the first existing file wins; nothing is added to the list, so
     /// a table's own directory is searched only when listed and an absolute
-    /// table name resolves against any non-empty search path.
+    /// table name resolves against any non-empty search path. Braille is read
+    /// and written in `braille_encoding` when given, otherwise as Unicode
+    /// braille.
     #[new]
-    #[pyo3(signature = (tables, direction = Direction::FORWARD, *, search_path = None))]
+    #[pyo3(signature = (
+        tables,
+        direction = Direction::FORWARD,
+        *,
+        search_path = None,
+        braille_encoding = None,
+    ))]
     fn new(
         py: Python<'_>,
         tables: Vec<PathBuf>,
         direction: Direction,
         search_path: Option<Vec<PathBuf>>,
+        braille_encoding: Option<Bound<'_, BrailleEncoding>>,
     ) -> PyResult<Self> {
         let dir: louis::Direction = direction.into();
+        let encoding = braille_encoding.as_ref().map(|e| &e.get().inner);
         let inner = py
-            .detach(|| match search_path {
-                Some(dirs) => louis::Translator::with_search_path(&tables, dir, dirs),
-                None => louis::Translator::new(&tables, dir),
+            .detach(|| {
+                match search_path {
+                    Some(dirs) => louis::Translator::with_search_path(&tables, dir, dirs),
+                    None => louis::Translator::new(&tables, dir),
+                }
+                .map(|translator| encoded(translator, encoding))
             })
             .map_err(to_pyerr)?;
         Ok(Self { inner })
@@ -175,11 +235,20 @@ impl Translator {
     /// Build a translator from raw table source text. Does not resolve
     /// `include` directives.
     #[staticmethod]
-    #[pyo3(signature = (table, direction = Direction::FORWARD))]
-    fn from_table_source(py: Python<'_>, table: &str, direction: Direction) -> PyResult<Self> {
+    #[pyo3(signature = (table, direction = Direction::FORWARD, *, braille_encoding = None))]
+    fn from_table_source(
+        py: Python<'_>,
+        table: &str,
+        direction: Direction,
+        braille_encoding: Option<Bound<'_, BrailleEncoding>>,
+    ) -> PyResult<Self> {
         let dir: louis::Direction = direction.into();
+        let encoding = braille_encoding.as_ref().map(|e| &e.get().inner);
         let inner = py
-            .detach(|| louis::Translator::from_table_source(table, dir))
+            .detach(|| {
+                louis::Translator::from_table_source(table, dir)
+                    .map(|translator| encoded(translator, encoding))
+            })
             .map_err(to_pyerr)?;
         Ok(Self { inner })
     }
@@ -236,6 +305,7 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = m.py();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<Direction>()?;
+    m.add_class::<BrailleEncoding>()?;
     m.add_class::<Translator>()?;
     m.add_class::<TranslationResult>()?;
     m.add("LouisError", py.get_type::<LouisError>())?;

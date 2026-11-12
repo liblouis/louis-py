@@ -1,0 +1,4 @@
+# Minimal display table for louis-py test suite: a few letters as themselves.
+display a 1
+display b 12
+display c 14

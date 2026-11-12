@@ -4,6 +4,7 @@ import enum
 from typing import NamedTuple
 
 from ._louis_py import (
+    BrailleEncoding,
     Direction,
     LouisError,
     TableCompileError,
@@ -52,6 +53,7 @@ class EmphasisSpan(NamedTuple):
 
 
 __all__ = [
+    "BrailleEncoding",
     "Direction",
     "EmphasisSpan",
     "LouisError",

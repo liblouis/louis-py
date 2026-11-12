@@ -26,6 +26,20 @@ class TranslationResult:
     # cursor past the end of the input.
     cursor_position: int | None
 
+# Which characters stand for the braille cells, such as ASCII braille, loaded
+# from a liblouis display table (`.dis`). One encoding can serve translators
+# in both directions.
+class BrailleEncoding:
+    def __init__(
+        self,
+        table: str | os.PathLike,
+        *,
+        # Looked up as for Translator.
+        search_path: Sequence[str | os.PathLike] | None = ...,
+    ) -> None: ...
+    @staticmethod
+    def from_table_source(table: str) -> BrailleEncoding: ...
+
 class Translator:
     def __init__(
         self,
@@ -37,11 +51,16 @@ class Translator:
         # is searched: a table's own directory only when listed, and an
         # absolute table name resolves against any non-empty search path.
         search_path: Sequence[str | os.PathLike] | None = ...,
+        # Read and write braille in this encoding. None means Unicode braille.
+        # A display table in `tables` is ignored, unlike in liblouis.
+        braille_encoding: BrailleEncoding | None = ...,
     ) -> None: ...
     @staticmethod
     def from_table_source(
         table: str,
         direction: Direction = ...,
+        *,
+        braille_encoding: BrailleEncoding | None = ...,
     ) -> Translator: ...
     # The emphasis classes the tables declare with `emphclass`, in the order
     # they declare them: the class names emphasis spans can use.

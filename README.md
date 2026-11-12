@@ -51,6 +51,18 @@ all:
 t = Translator(["en-ueb-g2.ctb"], search_path=[nvda_tables, addon_tables])
 ```
 
+Braille is read and written as Unicode braille. To use other characters for
+the cells, such as ASCII braille, load a liblouis display table as a
+`BrailleEncoding` and pass it to the translator:
+
+```python
+from louis_py import BrailleEncoding
+
+brf = BrailleEncoding("en-us-brf.dis")
+t = Translator(["en-us-g2.ctb"], braille_encoding=brf)
+t.translate("the")  # "!"
+```
+
 See `python/louis_py/_louis_py.pyi` for the full API.
 
 ## Releasing

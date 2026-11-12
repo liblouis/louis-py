@@ -30,6 +30,13 @@ louis-rs 0.3.0 from crates.io.
 - `Translator.from_table_source(table, direction=Direction.FORWARD)`: build a
   translator from raw table source text held in memory. Does not resolve
   `include` directives; table text containing one raises `TableParseError`.
+- `BrailleEncoding`: which characters stand for the braille cells, such as
+  ASCII braille, loaded from a liblouis display table (`.dis`) by name, with
+  the same `search_path=` lookup as `Translator`, or with
+  `BrailleEncoding.from_table_source`. Pass it as `braille_encoding=` to
+  `Translator` or `Translator.from_table_source`; without one, braille is
+  Unicode braille. Unlike liblouis, a display table in the table list is not
+  used.
 - `Direction` enum and `TranslationMode` flags (`enum.IntFlag`), passed to
   `Translator.translate_with_options` as `mode=`. `COMPBRL_AT_CURSOR` and
   `COMPBRL_LEFT_CURSOR` show the word at the cursor, or its part before the
