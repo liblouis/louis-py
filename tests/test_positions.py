@@ -1,4 +1,6 @@
-# Position maps are indexed per character, which matches Python string indexing.
+"""Position maps are indexed per character, which matches Python string
+indexing."""
+
 NUMBER_TABLE = "space \\s 0\nletter a 1\nlitdigit 4 145\nlitdigit 2 12\nnumsign 3456\n"
 CAPS_TABLE = "lowercase h 125\nlowercase i 24\nbase uppercase H h\ncapsletter 6\n"
 EMOJI = chr(0x1F600)
@@ -54,8 +56,9 @@ def test_backward_positions():
 
 
 def test_positions_count_characters_not_utf8_bytes():
-    # Rust counts chars, Python counts code points, so the indices line up even
-    # for characters outside the basic multilingual plane.
+    """Rust counts chars, Python counts code points, so the indices line up
+    even for characters outside the basic multilingual plane."""
+
     from louis_py import Translator
 
     table = "space \\s 0\nletter a 1\nsign " + EMOJI + " 1234\n"

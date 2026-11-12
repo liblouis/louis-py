@@ -8,7 +8,9 @@ BOGUS = Path(__file__).parent / "does-not-exist"
 
 
 def test_search_path_replaces_table_path_variable():
-    # conftest already points LOUIS_TABLE_PATH at the valid tables directory.
+    """search_path= is used instead of LOUIS_TABLE_PATH, which conftest
+    points at the valid tables directory."""
+
     from louis_py import TableParseError, Translator
 
     with pytest.raises(TableParseError):

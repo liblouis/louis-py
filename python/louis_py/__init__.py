@@ -49,8 +49,11 @@ class TranslationMode(enum.IntFlag):
 
 class EmphasisSpan(NamedTuple):
     class_: str
-    start: int  # inclusive
-    end: int  # exclusive
+    start: int
+    """The first emphasized character."""
+
+    end: int
+    """The character after the last emphasized one."""
 
 
 __all__ = [

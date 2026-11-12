@@ -1,16 +1,17 @@
 import pytest
 
-# "abc" contracts to one cell; comp6 gives each letter its computer braille.
 COMPBRL_TABLE = (
     "space \\s 0\nlowercase a 1\nlowercase b 12\nlowercase c 14\n"
     "always abc 123456\ncomp6 a 2\ncomp6 b 23\ncomp6 c 25\n"
     "begcomp 456-346\nendcomp 456-156\n"
 )
-# "about" as a whole word, and "by" joined to the word after it.
+"""Contracts "abc" to one cell, and gives each letter its computer braille."""
+
 PARTIAL_TABLE = (
     "space \\s 0\nlowercase a 1\nlowercase b 12\nlowercase y 13456\n"
     "word about 1-12\njoinword by 356\n"
 )
+"""Has "about" as a whole word, and "by" joined to the word after it."""
 
 
 def test_mode_flags_compose():
@@ -64,7 +65,8 @@ def test_partial_trans_has_no_word_end():
 
 @pytest.mark.parametrize(("braille", "expected"), [("⠴", "by"), ("⠴⠁", "by a")])
 def test_partial_trans_applies_joinword(braille, expected):
-    # A joinword applies, and puts its space back only once a word follows.
+    """A joinword applies, and puts its space back only once a word follows."""
+
     from louis_py import Direction, TranslationMode, Translator
 
     t = Translator.from_table_source(PARTIAL_TABLE, Direction.BACKWARD)

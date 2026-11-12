@@ -7,7 +7,8 @@ def test_translate_with_options_output():
 
 
 def test_forward_translation_reports_no_emphasis():
-    # Forward, the emphasis comes with the input, so the result has none.
+    """Forward, the emphasis comes with the input, so the result has none."""
+
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])

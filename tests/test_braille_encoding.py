@@ -35,7 +35,8 @@ def test_without_encoding_braille_is_unicode():
 
 
 def test_display_table_in_table_list_is_not_used():
-    # Unlike liblouis, the encoding is only taken from braille_encoding=.
+    """Unlike liblouis, the encoding is only taken from braille_encoding=."""
+
     from louis_py import Translator
 
     assert Translator(["mini.dis", "mini.ctb"]).translate("abc") == "⠁⠃⠉"
@@ -51,7 +52,9 @@ def test_encoding_from_search_path(monkeypatch):
 
 
 def test_encoding_from_table_path_variable():
-    # conftest points LOUIS_TABLE_PATH at the tables directory.
+    """Without search_path=, the encoding is looked up in LOUIS_TABLE_PATH,
+    which conftest points at the tables directory."""
+
     from louis_py import BrailleEncoding, Translator
 
     t = Translator(["mini.ctb"], braille_encoding=BrailleEncoding("mini.dis"))
