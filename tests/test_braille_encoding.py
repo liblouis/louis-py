@@ -34,6 +34,13 @@ def test_without_encoding_braille_is_unicode():
     assert Translator(["mini.ctb"]).translate("ab") == "⠁⠃"
 
 
+def test_display_table_in_table_list_is_not_used():
+    # Unlike liblouis, the encoding is only taken from braille_encoding=.
+    from louis_py import Translator
+
+    assert Translator(["mini.dis", "mini.ctb"]).translate("abc") == "⠁⠃⠉"
+
+
 def test_encoding_from_search_path(monkeypatch):
     from louis_py import BrailleEncoding, Translator
 

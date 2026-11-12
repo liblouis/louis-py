@@ -29,7 +29,8 @@ class TranslationMode(enum.IntFlag):
     uncontracted, in computer braille without begcomp and endcomp."""
 
     DOTS_IO = 1 << 2
-    """Not implemented yet: ignored. Braille is always Unicode braille."""
+    """Not implemented yet: ignored. Braille is Unicode braille, or the
+    characters of a ``BrailleEncoding``."""
 
     COMPBRL_LEFT_CURSOR = 1 << 3
     """Like ``COMPBRL_AT_CURSOR``, but only the part of the word before the

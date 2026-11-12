@@ -83,7 +83,8 @@ class Translator:
 class LouisError(Exception): ...
 
 class TableParseError(LouisError):
-    # One message per table that could not be found, read or parsed.
+    # One message per problem: a table that could not be found or read, or a
+    # line that could not be parsed.
     errors: list[str]
 
 class TableCompileError(LouisError):
