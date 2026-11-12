@@ -2,7 +2,7 @@ import pytest
 
 
 def test_bogus_table_raises_table_parse_error():
-    from louis_py import Translator, LouisError, TableParseError
+    from louis_py import LouisError, TableParseError, Translator
 
     with pytest.raises(TableParseError) as excinfo:
         Translator(["definitely-not-a-real-table.ctb"])
