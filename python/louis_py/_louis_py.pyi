@@ -2,10 +2,7 @@ import os
 import pathlib
 from collections.abc import Sequence
 
-class Direction:
-    FORWARD: Direction
-    BACKWARD: Direction
-    def __int__(self) -> int: ...
+from . import Direction, TranslationMode
 
 class TranslationResult:
     output: str
@@ -87,16 +84,14 @@ class Translator:
         self,
         text: str,
         *,
-        mode: int = ...,
+        mode: TranslationMode = ...,
         emphasis: list[tuple[str, int, int]] | None = ...,
         cursor_position: int | None = ...,
     ) -> TranslationResult:
         """Translate ``text`` with options, and report which input became which
         output.
 
-        :param mode: ``TranslationMode`` flags. ``COMPBRL_AT_CURSOR``,
-            ``COMPBRL_LEFT_CURSOR``, ``NO_UNDEFINED`` and ``PARTIAL_TRANS``
-            take effect; the others are ignored.
+        :param mode: The translation modes. No modes by default.
         :param emphasis: ``(class, start, end)`` spans over the input, such as
             ``EmphasisSpan``. Classes the tables do not declare are ignored.
         """

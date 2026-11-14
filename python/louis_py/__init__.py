@@ -5,7 +5,6 @@ from typing import NamedTuple
 
 from ._louis_py import (
     BrailleEncoding,
-    Direction,
     LouisError,
     TableCompileError,
     TableParseError,
@@ -15,34 +14,35 @@ from ._louis_py import (
 )
 
 
-class TranslationMode(enum.IntFlag):
-    """The liblouis translation modes, passed as ``mode=``.
+class Direction(enum.Enum):
+    """Which way a ``Translator`` translates."""
 
-    Modes louis-rs does not implement yet are accepted and ignored.
-    """
+    FORWARD = enum.auto()
+    """From text to braille."""
 
-    NO_CONTRACTIONS = 1 << 0
-    """Not implemented yet: ignored."""
+    BACKWARD = enum.auto()
+    """From braille to text."""
 
-    COMPBRL_AT_CURSOR = 1 << 1
+
+class TranslationMode(enum.Flag):
+    """Translation modes, passed as ``mode=``."""
+
+    NO_CONTRACTIONS = enum.auto()
+    """Forward: no contracting rule applies, such as ``word``, ``always`` or
+    ``match``. Backward: ignored."""
+
+    COMPBRL_AT_CURSOR = enum.auto()
     """Forward, with ``cursor_position=``: the word at the cursor is shown
     uncontracted, in computer braille without begcomp and endcomp."""
 
-    DOTS_IO = 1 << 2
-    """Not implemented yet: ignored. Braille is Unicode braille, or the
-    characters of a ``BrailleEncoding``."""
-
-    COMPBRL_LEFT_CURSOR = 1 << 3
+    COMPBRL_LEFT_CURSOR = enum.auto()
     """Like ``COMPBRL_AT_CURSOR``, but only the part of the word before the
     cursor."""
 
-    UC_BRL = 1 << 4
-    """Not implemented yet: ignored."""
-
-    NO_UNDEFINED = 1 << 5
+    NO_UNDEFINED = enum.auto()
     """Drop characters, or backward cells, the tables do not define."""
 
-    PARTIAL_TRANS = 1 << 6
+    PARTIAL_TRANS = enum.auto()
     """Backward: the braille may end in the middle of a word, such as the cells
     typed so far, so rules for whole words or word ends do not apply."""
 

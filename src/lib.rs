@@ -2,8 +2,11 @@
 use std::path::PathBuf;
 
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyValueError};
+use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
+use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::sync::PyOnceLock;
+use pyo3::types::PyType;
 
 create_exception!(
     _louis_py,
@@ -49,52 +52,75 @@ fn to_pyerr(err: louis::Error) -> PyErr {
     }
 }
 
-/// Map a raw Python `TranslationMode` bitmask to `louis::TranslationModes`.
-///
-/// The `table` below is the single source of truth for the Python <-> Rust mode
-/// contract and must stay in sync with `TranslationMode` in
-/// `python/louis_py/__init__.py`. Mapping by variant *name* (not declaration
-/// order) means the bindings stay correct if louis-rs reorders the enum, and a
-/// renamed/removed variant becomes a compile error here. Returns `None` if any
-/// bit does not correspond to a defined mode.
-fn modes_from_bits(bits: u32) -> Option<louis::TranslationModes> {
-    use louis::TranslationMode::*;
-    let table = [
-        (1 << 0, NoContractions),
-        (1 << 1, CompbrlAtCursor),
-        (1 << 2, DotsIo),
-        (1 << 3, CompbrlLeftCursor),
-        (1 << 4, UcBrl),
-        (1 << 5, NoUndefined),
-        (1 << 6, PartialTrans),
-    ];
-    let known: u32 = table.iter().map(|(b, _)| b).sum();
-    if bits & !known != 0 {
-        return None;
+/// Check that `obj` is a member of the enum `class` of the `louis_py` package,
+/// imported once into `cell`, raising `TypeError` otherwise.
+fn check_enum(obj: &Bound<'_, PyAny>, cell: &PyOnceLock<Py<PyType>>, class: &str) -> PyResult<()> {
+    if obj.is_instance(cell.import(obj.py(), "louis_py", class)?)? {
+        Ok(())
+    } else {
+        Err(PyTypeError::new_err(format!(
+            "expected louis_py.{class}, not {}",
+            obj.get_type().name()?
+        )))
     }
-    let mut modes = louis::TranslationModes::empty();
-    for (bit, mode) in table {
-        if bits & bit != 0 {
-            modes.insert(mode);
-        }
-    }
-    Some(modes)
 }
 
-/// Translation direction, mirrors `louis::Direction`.
-#[pyclass(eq, eq_int, from_py_object)]
-#[derive(Clone, Copy, PartialEq)]
-pub enum Direction {
-    FORWARD = 0,
-    BACKWARD = 1,
+/// The name of the enum member `member`.
+fn member_name(member: &Bound<'_, PyAny>) -> PyResult<String> {
+    member.getattr(intern!(member.py(), "name"))?.extract()
 }
 
-impl From<Direction> for louis::Direction {
-    fn from(d: Direction) -> Self {
-        match d {
-            Direction::FORWARD => louis::Direction::Forward,
-            Direction::BACKWARD => louis::Direction::Backward,
+/// A `louis_py.Direction`, as the `louis::Direction` it names.
+struct Direction(louis::Direction);
+
+impl Direction {
+    const FORWARD: Self = Self(louis::Direction::Forward);
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for Direction {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
+        static CLASS: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+        check_enum(&obj, &CLASS, "Direction")?;
+        match member_name(&obj)?.as_str() {
+            "FORWARD" => Ok(Self(louis::Direction::Forward)),
+            "BACKWARD" => Ok(Self(louis::Direction::Backward)),
+            name => Err(PyValueError::new_err(format!(
+                "louis_py.Direction.{name} has no louis-rs counterpart"
+            ))),
         }
+    }
+}
+
+/// A `louis_py.TranslationMode`, as the `louis::TranslationModes` its members
+/// name.
+#[derive(Default)]
+struct Modes(louis::TranslationModes);
+
+impl<'a, 'py> FromPyObject<'a, 'py> for Modes {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
+        use louis::TranslationMode::*;
+        static CLASS: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+        check_enum(&obj, &CLASS, "TranslationMode")?;
+        let mut modes = louis::TranslationModes::empty();
+        for member in obj.try_iter()? {
+            modes.insert(match member_name(&member?)?.as_str() {
+                "NO_CONTRACTIONS" => NoContractions,
+                "COMPBRL_AT_CURSOR" => CompbrlAtCursor,
+                "COMPBRL_LEFT_CURSOR" => CompbrlLeftCursor,
+                "NO_UNDEFINED" => NoUndefined,
+                "PARTIAL_TRANS" => PartialTrans,
+                name => {
+                    return Err(PyValueError::new_err(format!(
+                        "louis_py.TranslationMode.{name} has no louis-rs counterpart"
+                    )));
+                }
+            });
+        }
+        Ok(Self(modes))
     }
 }
 
@@ -218,7 +244,7 @@ impl Translator {
         search_path: Option<Vec<PathBuf>>,
         braille_encoding: Option<Bound<'_, BrailleEncoding>>,
     ) -> PyResult<Self> {
-        let dir: louis::Direction = direction.into();
+        let Direction(dir) = direction;
         let encoding = braille_encoding.as_ref().map(|e| &e.get().inner);
         let inner = py
             .detach(|| {
@@ -242,7 +268,7 @@ impl Translator {
         direction: Direction,
         braille_encoding: Option<Bound<'_, BrailleEncoding>>,
     ) -> PyResult<Self> {
-        let dir: louis::Direction = direction.into();
+        let Direction(dir) = direction;
         let encoding = braille_encoding.as_ref().map(|e| &e.get().inner);
         let inner = py
             .detach(|| {
@@ -270,19 +296,16 @@ impl Translator {
     }
 
     /// Translate `text` with options, and report which input became which output.
-    #[pyo3(signature = (text, *, mode = 0, emphasis = None, cursor_position = None))]
+    #[pyo3(signature = (text, *, mode = Modes::default(), emphasis = None, cursor_position = None))]
     fn translate_with_options(
         &self,
         py: Python<'_>,
         text: &str,
-        mode: u32,
+        mode: Modes,
         emphasis: Option<Vec<(String, usize, usize)>>,
         cursor_position: Option<usize>,
     ) -> PyResult<TranslationResult> {
-        let modes = modes_from_bits(mode).ok_or_else(|| {
-            PyValueError::new_err(format!("invalid translation mode bits: {mode:#x}"))
-        })?;
-        let mut options = louis::TranslationOptions::default().with_modes(modes);
+        let mut options = louis::TranslationOptions::default().with_modes(mode.0);
         if let Some(spans) = emphasis {
             let emphasis: louis::Emphasis = spans
                 .into_iter()
@@ -304,7 +327,6 @@ impl Translator {
 fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = m.py();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add_class::<Direction>()?;
     m.add_class::<BrailleEncoding>()?;
     m.add_class::<Translator>()?;
     m.add_class::<TranslationResult>()?;

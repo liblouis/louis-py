@@ -37,14 +37,13 @@ louis-rs 0.3.0 from crates.io.
   `Translator` or `Translator.from_table_source`; without one, braille is
   Unicode braille. Unlike liblouis, a display table in the table list is not
   used.
-- `Direction` enum and `TranslationMode` flags (`enum.IntFlag`), passed to
+- `Direction` (`enum.Enum`) and `TranslationMode` (`enum.Flag`), passed to
   `Translator.translate_with_options` as `mode=`. `COMPBRL_AT_CURSOR` and
   `COMPBRL_LEFT_CURSOR` show the word at the cursor, or its part before the
-  cursor, uncontracted in computer braille. `NO_UNDEFINED` drops characters
-  and cells the tables do not define. `PARTIAL_TRANS` back-translates braille
-  that may end in the middle of a word, such as the cells typed so far.
-  `NO_CONTRACTIONS`, `DOTS_IO` and `UC_BRL` are accepted but not implemented
-  in louis-rs yet.
+  cursor, uncontracted in computer braille. `NO_CONTRACTIONS` translates
+  without contractions. `NO_UNDEFINED` drops characters and cells the tables
+  do not define. `PARTIAL_TRANS` back-translates braille that may end in the
+  middle of a word, such as the cells typed so far.
 - `TranslationResult` and `EmphasisSpan` result types.
 - Emphasis: `emphasis=` on `Translator.translate_with_options` takes
   `(class, start, end)` spans over the input, such as `EmphasisSpan`s; a class

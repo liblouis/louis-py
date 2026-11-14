@@ -1,3 +1,5 @@
+import enum
+
 import pytest
 
 COMPBRL_TABLE = (
@@ -14,20 +16,55 @@ PARTIAL_TABLE = (
 """Has "about" as a whole word, and "by" joined to the word after it."""
 
 
-def test_mode_flags_compose():
+NO_CONTRACTIONS_TABLE = (
+    "space \\s 0\nlowercase a 1\nlowercase b 12\nlowercase c 14\n"
+    "word ab 1246\nalways bc 123456\nmatch - ca - 25\n"
+)
+"""Contracts "ab" as a word, "bc" always and "ca" with a match rule."""
+
+
+def test_modes_are_flags_that_compose():
     from louis_py import TranslationMode
 
-    combined = TranslationMode.NO_CONTRACTIONS | TranslationMode.UC_BRL
-    assert combined & TranslationMode.NO_CONTRACTIONS
-    assert int(TranslationMode.NO_CONTRACTIONS) == 1
+    assert issubclass(TranslationMode, enum.Flag)
+    combined = TranslationMode.NO_CONTRACTIONS | TranslationMode.NO_UNDEFINED
+    assert list(combined) == [
+        TranslationMode.NO_CONTRACTIONS,
+        TranslationMode.NO_UNDEFINED,
+    ]
+    assert TranslationMode.PARTIAL_TRANS not in combined
 
 
-def test_unknown_mode_bits_rejected():
+def test_every_mode_is_accepted():
+    """Each mode, and no mode, reaches louis-rs."""
+
+    from louis_py import TranslationMode, Translator
+
+    t = Translator(["mini.ctb"])
+    for mode in [TranslationMode(0), *TranslationMode]:
+        assert t.translate_with_options("abc", mode=mode).output == "⠁⠃⠉"
+
+
+@pytest.mark.parametrize("mode", [0, 1, "NO_UNDEFINED"])
+def test_mode_must_be_a_translation_mode(mode):
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])
-    with pytest.raises(ValueError):
-        t.translate_with_options("abc", mode=1 << 30)
+    with pytest.raises(TypeError):
+        t.translate_with_options("abc", mode=mode)
+
+
+def test_no_contractions_spells_everything_out():
+    from louis_py import Direction, TranslationMode, Translator
+
+    forward = Translator.from_table_source(NO_CONTRACTIONS_TABLE)
+    assert forward.translate("ab bc ca") == "⠫⠀⠿⠀⠒"
+    r = forward.translate_with_options("ab bc ca", mode=TranslationMode.NO_CONTRACTIONS)
+    assert r.output == "⠁⠃⠀⠃⠉⠀⠉⠁"
+    # Like liblouis, back-translation ignores the mode.
+    backward = Translator.from_table_source(NO_CONTRACTIONS_TABLE, Direction.BACKWARD)
+    r = backward.translate_with_options("⠫", mode=TranslationMode.NO_CONTRACTIONS)
+    assert r.output == "ab"
 
 
 @pytest.mark.parametrize(
