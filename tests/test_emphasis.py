@@ -44,14 +44,14 @@ def test_forward_result_has_no_emphasis():
     ("braille", "text", "spans"),
     [
         # A single emphasized letter.
-        ("⠨⠆⠁⠃", "ab", [("italic", 0, 1)]),
+        ("⠨⠆⠁⠃", "ab", (("italic", 0, 1),)),
         # A word up to its end indicator.
-        ("⠃⠀⠨⠂⠁⠃⠨⠄⠁", "b aba", [("italic", 2, 4)]),
+        ("⠃⠀⠨⠂⠁⠃⠨⠄⠁", "b aba", (("italic", 2, 4),)),
         # A word without an end indicator ends at the space, which is not
         # emphasized.
-        ("⠨⠂⠁⠃⠀⠁", "ab a", [("italic", 0, 2)]),
+        ("⠨⠂⠁⠃⠀⠁", "ab a", (("italic", 0, 2),)),
         # No indicators, no spans.
-        ("⠁⠃", "ab", []),
+        ("⠁⠃", "ab", ()),
     ],
 )
 def test_back_translation_returns_the_emphasis(braille, text, spans):
@@ -61,7 +61,7 @@ def test_back_translation_returns_the_emphasis(braille, text, spans):
     r = t.translate_with_options(braille)
     assert r.output == text
     assert r.emphasis == spans
-    assert [EmphasisSpan(*span) for span in r.emphasis] == spans
+    assert tuple(EmphasisSpan(*span) for span in r.emphasis) == spans
 
 
 def test_emphasis_accepts_a_tuple_of_spans():
@@ -72,12 +72,20 @@ def test_emphasis_accepts_a_tuple_of_spans():
     assert r.output == "⠨⠆⠁⠃"
 
 
+def test_back_translated_emphasis_is_built_once():
+    from louis_py import Direction, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE, Direction.BACKWARD)
+    r = t.translate_with_options("⠨⠆⠁⠃")
+    assert r.emphasis is r.emphasis
+
+
 def test_repr_shows_back_translated_emphasis_as_python_values():
     from louis_py import Direction, Translator
 
     t = Translator.from_table_source(ITALIC_TABLE, Direction.BACKWARD)
     r = t.translate_with_options("⠨⠆⠁⠃")
-    assert "emphasis=[('italic', 0, 1)]," in repr(r)
+    assert "emphasis=(('italic', 0, 1),)," in repr(r)
 
 
 def test_emphasis_classes_in_declaration_order():

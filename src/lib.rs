@@ -7,7 +7,7 @@ use pyo3::exceptions::{PyException, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
-use pyo3::types::PyType;
+use pyo3::types::{PyString, PyTuple, PyType};
 use search_path::SearchPath;
 
 create_exception!(
@@ -130,13 +130,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Modes {
     }
 }
 
-/// The result of a translation. Mirrors `louis::TranslationResult`.
+/// The result of a translation. Mirrors `louis::TranslationResult`, with each
+/// field converted to a Python object once, so that reading an attribute
+/// returns that object instead of converting the field again.
 #[pyclass(frozen, get_all, module = "louis_py")]
 pub struct TranslationResult {
-    pub output: String,
-    pub emphasis: Option<Vec<(String, usize, usize)>>,
-    pub output_positions: Vec<usize>,
-    pub input_positions: Vec<usize>,
+    pub output: Py<PyString>,
+    pub emphasis: Option<Py<PyTuple>>,
+    pub output_positions: Py<PyTuple>,
+    pub input_positions: Py<PyTuple>,
     pub cursor_position: Option<usize>,
 }
 
@@ -145,30 +147,36 @@ impl TranslationResult {
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
         Ok(format!(
             "TranslationResult(output={}, emphasis={}, output_positions={}, input_positions={}, cursor_position={})",
-            (&self.output).into_pyobject(py)?.repr()?,
+            self.output.bind(py).repr()?,
             (&self.emphasis).into_pyobject(py)?.repr()?,
-            (&self.output_positions).into_pyobject(py)?.repr()?,
-            (&self.input_positions).into_pyobject(py)?.repr()?,
+            self.output_positions.bind(py).repr()?,
+            self.input_positions.bind(py).repr()?,
             self.cursor_position.into_pyobject(py)?.repr()?,
         ))
     }
 }
 
 impl TranslationResult {
-    fn from_rust(r: &louis::TranslationResult) -> Self {
-        Self {
-            output: r.output().to_owned(),
-            emphasis: r.emphasis().map(|emphasis| {
-                emphasis
-                    .spans()
-                    .iter()
-                    .map(|s| (s.class().to_owned(), s.range().start, s.range().end))
-                    .collect()
-            }),
-            output_positions: r.output_positions().to_vec(),
-            input_positions: r.input_positions().to_vec(),
+    fn from_rust(py: Python<'_>, r: &louis::TranslationResult) -> PyResult<Self> {
+        let emphasis = r
+            .emphasis()
+            .map(|emphasis| {
+                PyTuple::new(
+                    py,
+                    emphasis
+                        .spans()
+                        .iter()
+                        .map(|s| (s.class(), s.range().start, s.range().end)),
+                )
+            })
+            .transpose()?;
+        Ok(Self {
+            output: PyString::new(py, r.output()).unbind(),
+            emphasis: emphasis.map(Bound::unbind),
+            output_positions: PyTuple::new(py, r.output_positions())?.unbind(),
+            input_positions: PyTuple::new(py, r.input_positions())?.unbind(),
             cursor_position: r.cursor_position(),
-        }
+        })
     }
 }
 
@@ -327,7 +335,7 @@ impl Translator {
             options = options.with_cursor_position(position);
         }
         let result = py.detach(|| self.inner.translate_with_options(text, &options));
-        Ok(TranslationResult::from_rust(&result))
+        TranslationResult::from_rust(py, &result)
     }
 }
 

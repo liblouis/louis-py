@@ -11,8 +11,8 @@ def test_positions_are_one_to_one_without_indicators():
 
     t = Translator(["mini.ctb"])
     r = t.translate_with_options("abc")
-    assert r.output_positions == [0, 1, 2]
-    assert r.input_positions == [0, 1, 2]
+    assert r.output_positions == (0, 1, 2)
+    assert r.input_positions == (0, 1, 2)
 
 
 def test_number_sign_shifts_later_positions():
@@ -22,9 +22,9 @@ def test_number_sign_shifts_later_positions():
     r = t.translate_with_options("a 42")
     assert r.output == "⠁⠀⠼⠙⠃"
     # The number sign occupies output cell 2, so "4" lands on 3 and "2" on 4.
-    assert r.output_positions == [0, 1, 2, 4]
+    assert r.output_positions == (0, 1, 2, 4)
     # Both the number sign and "4" point back at input character 2.
-    assert r.input_positions == [0, 1, 2, 2, 3]
+    assert r.input_positions == (0, 1, 2, 2, 3)
 
 
 def test_cursor_is_translated_only_when_given():
@@ -49,10 +49,10 @@ def test_backward_positions():
     t = Translator.from_table_source(CAPS_TABLE, Direction.BACKWARD)
     r = t.translate_with_options("⠠⠓⠊")
     assert r.output == "Hi"
-    assert r.output_positions == [0, 0, 1]
+    assert r.output_positions == (0, 0, 1)
     # Backward, a consumed cell is claimed by the character that follows it, so
     # "H" covers the capital sign as well.
-    assert r.input_positions == [0, 2]
+    assert r.input_positions == (0, 2)
 
 
 def test_positions_count_characters_not_utf8_bytes():
@@ -66,6 +66,6 @@ def test_positions_count_characters_not_utf8_bytes():
     text = "a" + EMOJI + "a"
     r = t.translate_with_options(text, cursor_position=2)
     assert len(text) == 3
-    assert r.output_positions == [0, 1, 2]
-    assert r.input_positions == [0, 1, 2]
+    assert r.output_positions == (0, 1, 2)
+    assert r.input_positions == (0, 1, 2)
     assert r.cursor_position == 2

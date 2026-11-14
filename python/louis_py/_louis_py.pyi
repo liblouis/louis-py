@@ -6,19 +6,19 @@ from . import Direction, TranslationMode
 
 class TranslationResult:
     output: str
-    emphasis: list[tuple[str, int, int]] | None
+    emphasis: tuple[tuple[str, int, int], ...] | None
     """Backward, the emphasis of ``output`` as the braille's emphasis indicators
     give it (liblouis's typeform): ``(class, start, end)`` spans, sorted by
     class and then by start, with touching spans of a class merged. The space
     that ends an emphasized word is not emphasized. Forward, where the emphasis
     comes with the input, always ``None``."""
 
-    output_positions: list[int]
+    output_positions: tuple[int, ...]
     """``output_positions[i]`` is the index in ``output`` of the cell that the
     input character at index ``i`` translated to. One entry per input
     character."""
 
-    input_positions: list[int]
+    input_positions: tuple[int, ...]
     """``input_positions[j]`` is the index in the input text of the character
     that ``output[j]`` came from. One entry per output cell."""
 
