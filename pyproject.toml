@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff==0.15.20", "ty"]
+dev = ["pytest", "ruff==0.17.5", "ty"]
 
 [tool.maturin]
 module-name = "louis_py._louis_py"
