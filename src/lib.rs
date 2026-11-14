@@ -8,6 +8,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::PyType;
+use search_path::SearchPath;
 
 create_exception!(
     louis_py,
@@ -171,6 +172,14 @@ impl TranslationResult {
     }
 }
 
+/// `search_path`, or when it is `None` the directories in `LOUIS_TABLE_PATH`,
+/// read as louis-rs reads them. louis-rs would read the variable itself after
+/// the interpreter is released, while another Python thread may be changing the
+/// environment; reading it here, while attached, rules that out.
+fn search_path_or_table_path(search_path: Option<Vec<PathBuf>>) -> Vec<PathBuf> {
+    search_path.unwrap_or_else(|| SearchPath::new_or("LOUIS_TABLE_PATH", ".").into())
+}
+
 /// Which characters stand for the braille cells, such as ASCII braille,
 /// loaded from a liblouis display table (`.dis`). Immutable and safe to share
 /// across threads; one encoding can serve translators in both directions.
@@ -187,11 +196,9 @@ impl BrailleEncoding {
     #[new]
     #[pyo3(signature = (table, *, search_path = None))]
     fn new(py: Python<'_>, table: PathBuf, search_path: Option<Vec<PathBuf>>) -> PyResult<Self> {
+        let search_path = search_path_or_table_path(search_path);
         let inner = py
-            .detach(|| match search_path {
-                Some(dirs) => louis::BrailleEncoding::with_search_path(&table, dirs),
-                None => louis::BrailleEncoding::new(&table),
-            })
+            .detach(|| louis::BrailleEncoding::with_search_path(&table, search_path))
             .map_err(to_pyerr)?;
         Ok(Self { inner })
     }
@@ -251,13 +258,11 @@ impl Translator {
     ) -> PyResult<Self> {
         let Direction(dir) = direction;
         let encoding = braille_encoding.as_ref().map(|e| &e.get().inner);
+        let search_path = search_path_or_table_path(search_path);
         let inner = py
             .detach(|| {
-                match search_path {
-                    Some(dirs) => louis::Translator::with_search_path(&tables, dir, dirs),
-                    None => louis::Translator::new(&tables, dir),
-                }
-                .map(|translator| encoded(translator, encoding))
+                louis::Translator::with_search_path(&tables, dir, search_path)
+                    .map(|translator| encoded(translator, encoding))
             })
             .map_err(to_pyerr)?;
         Ok(Self { inner })

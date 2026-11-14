@@ -103,6 +103,7 @@ dependencies = [
  "louis-rs",
  "pyo3",
  "pyo3-log",
+ "search_path",
 ]
 
 [[package]]
