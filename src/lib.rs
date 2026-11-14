@@ -1,5 +1,6 @@
 //! PyO3 bindings for the `louis` braille translator.
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyRuntimeError, PyTypeError, PyValueError};
@@ -52,14 +53,18 @@ fn to_pyerr(err: louis::Error) -> PyErr {
     }
 }
 
-/// Check that `obj` is a member of the enum `class` of the `louis_py` package,
-/// imported once into `cell`, raising `TypeError` otherwise.
+/// The package this module was loaded from.
+static PACKAGE: OnceLock<String> = OnceLock::new();
+
+/// Check that `obj` is a member of the enum `class` of the package this module was
+/// loaded from, imported once into `cell`, raising `TypeError` otherwise.
 fn check_enum(obj: &Bound<'_, PyAny>, cell: &PyOnceLock<Py<PyType>>, class: &str) -> PyResult<()> {
-    if obj.is_instance(cell.import(obj.py(), "louis_py", class)?)? {
+    let package = PACKAGE.get().expect("set when the module is initialized");
+    if obj.is_instance(cell.import(obj.py(), package, class)?)? {
         Ok(())
     } else {
         Err(PyTypeError::new_err(format!(
-            "expected louis_py.{class}, not {}",
+            "expected {package}.{class}, not {}",
             obj.get_type().name()?
         )))
     }
@@ -326,6 +331,12 @@ impl Translator {
 #[pymodule]
 fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = m.py();
+    let name = m.name()?;
+    let name = name.to_cow()?;
+    let package = name
+        .rsplit_once('.')
+        .map_or("louis_py", |(package, _)| package);
+    let _ = PACKAGE.set(package.to_owned());
     pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?
         .install()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
