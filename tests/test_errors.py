@@ -15,6 +15,37 @@ def test_bogus_table_raises_table_parse_error():
     assert all(isinstance(e, str) for e in exc.errors)
 
 
+def test_table_parse_error_survives_pickling():
+    """A worker process sends its exceptions back to the parent pickled."""
+
+    import pickle
+
+    from louis_py import TableParseError, Translator
+
+    with pytest.raises(TableParseError) as excinfo:
+        Translator(["definitely-not-a-real-table.ctb"])
+
+    exc = pickle.loads(pickle.dumps(excinfo.value))
+    assert type(exc) is TableParseError
+    assert str(exc) == str(excinfo.value)
+    assert exc.errors == excinfo.value.errors
+
+
+def test_table_compile_error_survives_pickling():
+    import pickle
+
+    from louis_py import TableCompileError, Translator
+
+    with pytest.raises(TableCompileError) as excinfo:
+        Translator(["undefined-base.ctb"])
+
+    exc = pickle.loads(pickle.dumps(excinfo.value))
+    assert type(exc) is TableCompileError
+    assert str(exc) == str(excinfo.value)
+    assert exc.path == excinfo.value.path
+    assert exc.line == excinfo.value.line
+
+
 def test_exception_hierarchy():
     from louis_py import LouisError, TableCompileError, TableParseError
 

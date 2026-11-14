@@ -1,8 +1,31 @@
+import pytest
+
+
 def test_import_and_version():
     import louis_py
 
     assert isinstance(louis_py.__version__, str)
     assert louis_py.__version__
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "BrailleEncoding",
+        "LouisError",
+        "TableCompileError",
+        "TableParseError",
+        "TranslationResult",
+        "Translator",
+    ],
+)
+def test_public_types_name_the_package_as_their_module(name):
+    """Pickling looks a class up by its module, so that module must be the
+    importable package rather than the extension module inside it."""
+
+    import louis_py
+
+    assert getattr(louis_py, name).__module__ == "louis_py"
 
 
 def test_version_matches_distribution_metadata():

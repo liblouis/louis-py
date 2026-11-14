@@ -10,19 +10,19 @@ use pyo3::sync::PyOnceLock;
 use pyo3::types::PyType;
 
 create_exception!(
-    _louis_py,
+    louis_py,
     LouisError,
     PyException,
     "Base class for louis errors."
 );
 create_exception!(
-    _louis_py,
+    louis_py,
     TableParseError,
     LouisError,
     "Raised when a braille table fails to parse."
 );
 create_exception!(
-    _louis_py,
+    louis_py,
     TableCompileError,
     LouisError,
     "Raised when a rule of a braille table refers to something no rule defines."
@@ -130,7 +130,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Modes {
 }
 
 /// The result of a translation. Mirrors `louis::TranslationResult`.
-#[pyclass(frozen, get_all)]
+#[pyclass(frozen, get_all, module = "louis_py")]
 pub struct TranslationResult {
     pub output: String,
     pub emphasis: Option<Vec<(String, usize, usize)>>,
@@ -174,7 +174,7 @@ impl TranslationResult {
 /// Which characters stand for the braille cells, such as ASCII braille,
 /// loaded from a liblouis display table (`.dis`). Immutable and safe to share
 /// across threads; one encoding can serve translators in both directions.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "louis_py")]
 pub struct BrailleEncoding {
     inner: louis::BrailleEncoding,
 }
@@ -219,7 +219,7 @@ fn encoded(
 }
 
 /// A compiled braille translator. Immutable and safe to share across threads.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "louis_py")]
 pub struct Translator {
     inner: louis::Translator,
 }
@@ -341,11 +341,20 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         .install()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add_class::<BrailleEncoding>()?;
-    m.add_class::<Translator>()?;
-    m.add_class::<TranslationResult>()?;
-    m.add("LouisError", py.get_type::<LouisError>())?;
-    m.add("TableParseError", py.get_type::<TableParseError>())?;
-    m.add("TableCompileError", py.get_type::<TableCompileError>())?;
+    let types = [
+        py.get_type::<BrailleEncoding>(),
+        py.get_type::<Translator>(),
+        py.get_type::<TranslationResult>(),
+        py.get_type::<LouisError>(),
+        py.get_type::<TableParseError>(),
+        py.get_type::<TableCompileError>(),
+    ];
+    for class in types {
+        // The package re-exports these types, so name it as their module, which
+        // pickling imports to find them again. It is `louis_py` unless a host
+        // bundles the package as a subpackage of its own.
+        class.setattr(intern!(py, "__module__"), package)?;
+        m.add(class.name()?, class)?;
+    }
     Ok(())
 }
