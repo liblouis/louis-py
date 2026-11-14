@@ -15,7 +15,9 @@ Each release names the louis-rs version it is built on.
 
 First release of louis-py, Python bindings for the
 [louis-rs](https://github.com/liblouis/louis-rs) braille translator, built on
-louis-rs 0.3.0 from crates.io.
+louis-rs 0.3.1 with the later changes on its main branch, up to commit
+[86ef185](https://github.com/liblouis/louis-rs/commit/86ef185acd6232dab184c9cb1195152558a5a7a0).
+louis-py needs APIs that no louis-rs release has yet.
 
 ### Added
 
