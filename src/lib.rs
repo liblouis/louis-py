@@ -3,11 +3,10 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::sync::PyOnceLock;
-use pyo3::types::{PyString, PyTuple, PyType};
+use pyo3::types::{PyString, PyTuple};
 use search_path::SearchPath;
 
 create_exception!(
@@ -58,10 +57,11 @@ fn to_pyerr(err: louis::Error) -> PyErr {
 static PACKAGE: OnceLock<String> = OnceLock::new();
 
 /// Check that `obj` is a member of the enum `class` of the package this module was
-/// loaded from, imported once into `cell`, raising `TypeError` otherwise.
-fn check_enum(obj: &Bound<'_, PyAny>, cell: &PyOnceLock<Py<PyType>>, class: &str) -> PyResult<()> {
+/// loaded from, raising `TypeError` otherwise.
+fn check_enum(obj: &Bound<'_, PyAny>, class: &str) -> PyResult<()> {
     let package = PACKAGE.get().expect("set when the module is initialized");
-    if obj.is_instance(cell.import(obj.py(), package, class)?)? {
+    let expected = obj.py().import(package)?.getattr(class)?;
+    if obj.is_instance(&expected)? {
         Ok(())
     } else {
         Err(PyTypeError::new_err(format!(
@@ -87,8 +87,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Direction {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
-        static CLASS: PyOnceLock<Py<PyType>> = PyOnceLock::new();
-        check_enum(&obj, &CLASS, "Direction")?;
+        check_enum(&obj, "Direction")?;
         match member_name(&obj)?.as_str() {
             "FORWARD" => Ok(Self(louis::Direction::Forward)),
             "BACKWARD" => Ok(Self(louis::Direction::Backward)),
@@ -109,8 +108,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Modes {
 
     fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         use louis::TranslationMode::*;
-        static CLASS: PyOnceLock<Py<PyType>> = PyOnceLock::new();
-        check_enum(&obj, &CLASS, "TranslationMode")?;
+        check_enum(&obj, "TranslationMode")?;
         let mut modes = louis::TranslationModes::empty();
         for member in obj.try_iter()? {
             modes.insert(match member_name(&member?)?.as_str() {
@@ -350,9 +348,7 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         .rsplit_once('.')
         .map_or("louis_py", |(package, _)| package);
     let _ = PACKAGE.set(package.to_owned());
-    pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?
-        .install()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let _ = pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?.install();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     let types = [
         py.get_type::<BrailleEncoding>(),
