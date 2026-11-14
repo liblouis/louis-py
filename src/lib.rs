@@ -142,15 +142,15 @@ pub struct TranslationResult {
 
 #[pymethods]
 impl TranslationResult {
-    fn __repr__(&self) -> String {
-        format!(
-            "TranslationResult(output={:?}, emphasis={:?}, output_positions={:?}, input_positions={:?}, cursor_position={:?})",
-            self.output,
-            self.emphasis,
-            self.output_positions,
-            self.input_positions,
-            self.cursor_position
-        )
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        Ok(format!(
+            "TranslationResult(output={}, emphasis={}, output_positions={}, input_positions={}, cursor_position={})",
+            (&self.output).into_pyobject(py)?.repr()?,
+            (&self.emphasis).into_pyobject(py)?.repr()?,
+            (&self.output_positions).into_pyobject(py)?.repr()?,
+            (&self.input_positions).into_pyobject(py)?.repr()?,
+            self.cursor_position.into_pyobject(py)?.repr()?,
+        ))
     }
 }
 

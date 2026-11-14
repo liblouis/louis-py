@@ -16,9 +16,12 @@ def test_forward_translation_reports_no_emphasis():
     assert r.emphasis is None
 
 
-def test_repr():
+def test_repr_shows_python_values():
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])
-    r = t.translate_with_options("a")
-    assert "TranslationResult" in repr(r)
+    r = t.translate_with_options("ab", cursor_position=1)
+    assert repr(r) == (
+        "TranslationResult(output='⠁⠃', emphasis=None, output_positions=[0, 1], "
+        "input_positions=[0, 1], cursor_position=1)"
+    )

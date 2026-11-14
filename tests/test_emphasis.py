@@ -72,6 +72,14 @@ def test_emphasis_accepts_a_tuple_of_spans():
     assert r.output == "⠨⠆⠁⠃"
 
 
+def test_repr_shows_back_translated_emphasis_as_python_values():
+    from louis_py import Direction, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE, Direction.BACKWARD)
+    r = t.translate_with_options("⠨⠆⠁⠃")
+    assert "emphasis=[('italic', 0, 1)]," in repr(r)
+
+
 def test_emphasis_classes_in_declaration_order():
     from louis_py import Translator
 
