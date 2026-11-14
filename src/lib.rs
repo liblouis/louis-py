@@ -128,9 +128,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Modes {
     }
 }
 
-/// The result of a translation. Mirrors `louis::TranslationResult`, with each
-/// field converted to a Python object once, so that reading an attribute
-/// returns that object instead of converting the field again.
+/// The result of a translation. Mirrors `louis::TranslationResult`.
 #[pyclass(frozen, get_all, module = "louis_py")]
 pub struct TranslationResult {
     pub output: Py<PyString>,
@@ -178,10 +176,7 @@ impl TranslationResult {
     }
 }
 
-/// `search_path`, or when it is `None` the directories in `LOUIS_TABLE_PATH`,
-/// read as louis-rs reads them. louis-rs would read the variable itself after
-/// the interpreter is released, while another Python thread may be changing the
-/// environment; reading it here, while attached, rules that out.
+/// `search_path`, or the directories in `LOUIS_TABLE_PATH` when it is `None`.
 fn search_path_or_table_path(search_path: Option<Vec<PathBuf>>) -> Vec<PathBuf> {
     search_path.unwrap_or_else(|| SearchPath::new_or("LOUIS_TABLE_PATH", ".").into())
 }
@@ -359,9 +354,6 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         py.get_type::<TableCompileError>(),
     ];
     for class in types {
-        // The package re-exports these types, so name it as their module, which
-        // pickling imports to find them again. It is `louis_py` unless a host
-        // bundles the package as a subpackage of its own.
         class.setattr(intern!(py, "__module__"), package)?;
         m.add(class.name()?, class)?;
     }

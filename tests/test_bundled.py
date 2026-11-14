@@ -79,8 +79,6 @@ def run(script, cwd):
 def test_louis_py_works_inside_another_package(host):
     """A host can bundle louis_py as a subpackage of its own."""
 
-    # The types report the host's subpackage as their module, so they pickle
-    # there too.
     assert run(SCRIPT, host) == ["a", "host.louis_py"]
 
 

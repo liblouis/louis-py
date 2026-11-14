@@ -31,8 +31,6 @@ def test_repr_shows_python_values():
 
 
 def test_result_attributes_cannot_be_changed():
-    """The result is read-only, down to its sequences."""
-
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])
@@ -44,8 +42,6 @@ def test_result_attributes_cannot_be_changed():
 
 
 def test_result_attributes_are_built_once():
-    """Reading an attribute in a loop costs nothing per read."""
-
     from louis_py import Translator
 
     t = Translator(["mini.ctb"])

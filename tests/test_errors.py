@@ -16,8 +16,6 @@ def test_bogus_table_raises_table_parse_error():
 
 
 def test_table_parse_error_survives_pickling():
-    """A worker process sends its exceptions back to the parent pickled."""
-
     import pickle
 
     from louis_py import TableParseError, Translator
