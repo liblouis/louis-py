@@ -85,7 +85,7 @@ class Translator:
         text: str,
         *,
         mode: TranslationMode = ...,
-        emphasis: list[tuple[str, int, int]] | None = ...,
+        emphasis: Sequence[tuple[str, int, int]] | None = ...,
         cursor_position: int | None = ...,
     ) -> TranslationResult:
         """Translate ``text`` with options, and report which input became which

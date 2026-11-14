@@ -64,6 +64,14 @@ def test_back_translation_returns_the_emphasis(braille, text, spans):
     assert [EmphasisSpan(*span) for span in r.emphasis] == spans
 
 
+def test_emphasis_accepts_a_tuple_of_spans():
+    from louis_py import EmphasisSpan, Translator
+
+    t = Translator.from_table_source(ITALIC_TABLE)
+    r = t.translate_with_options("ab", emphasis=(EmphasisSpan("italic", 0, 1),))
+    assert r.output == "⠨⠆⠁⠃"
+
+
 def test_emphasis_classes_in_declaration_order():
     from louis_py import Translator
 
