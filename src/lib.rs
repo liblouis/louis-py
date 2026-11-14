@@ -2,7 +2,7 @@
 use std::path::PathBuf;
 
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyException, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
@@ -326,6 +326,9 @@ impl Translator {
 #[pymodule]
 fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = m.py();
+    pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?
+        .install()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<BrailleEncoding>()?;
     m.add_class::<Translator>()?;

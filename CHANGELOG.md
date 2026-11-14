@@ -65,6 +65,7 @@ louis-rs 0.3.0 from crates.io.
   something no rule defines. `TableParseError.errors` lists every problem;
   `TableCompileError.path` and `.line` say where the rule is, `path` being
   `None` for table source given in memory. Translating itself cannot fail.
+- Warnings from louis-rs go to Python's `logging`, under the `louis` logger.
 - Type stubs (`_louis_py.pyi`) and `py.typed` marker.
 - Built with maturin, `abi3-py311` (single wheel for Python 3.11+).
 

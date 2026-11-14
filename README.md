@@ -63,6 +63,10 @@ t = Translator(["en-us-g2.ctb"], braille_encoding=brf)
 t.translate("the")  # "!"
 ```
 
+Warnings from louis-rs, such as an indicator it ignores when back-translating,
+go to Python's `logging`, to loggers named after the louis-rs module, under
+`louis`.
+
 See `python/louis_py/_louis_py.pyi` for the full API.
 
 ## Releasing
