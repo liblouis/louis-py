@@ -1,8 +1,8 @@
 import os
 import pathlib
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
-from . import Direction, TranslationMode
+from . import CompileErrorKind, Direction, TableError, TranslationMode
 
 class TranslationResult:
     output: str
@@ -96,11 +96,55 @@ class Translator:
             ``EmphasisSpan``. Classes the tables do not declare are ignored.
         """
 
+class Query:
+    """A query into the metadata of tables: ``key:value`` pairs that a table
+    must all carry to match."""
+
+    def __init__(self, pairs: Iterable[tuple[str, str]]) -> None:
+        """Build a query from ``(key, value)`` pairs."""
+
+    @staticmethod
+    def parse(text: str) -> Query:
+        """Parse a query: ``key:value`` pairs separated by whitespace, such as
+        ``language:de grade:2``.
+
+        :raises louis_py.metadata.InvalidQueryError: A part is not a
+            ``key:value`` pair.
+        """
+
+class Index:
+    """The ``#+key: value`` metadata pairs of the tables on a search path,
+    mapped to the tables that carry them."""
+
+    def __init__(
+        self,
+        *,
+        search_path: Sequence[str | os.PathLike] | None = ...,
+    ) -> None:
+        """Index the tables on the search path.
+
+        :param search_path: Looked up as for ``Translator``.
+        :raises louis_py.metadata.MetadataIOError: A directory on the search
+            path could not be read.
+        """
+
+    def find(
+        self,
+        query: Query | str | Iterable[tuple[str, str]],
+    ) -> list[pathlib.Path]:
+        """The tables that carry every pair of ``query``, sorted by path.
+
+        :param query: A ``Query``, a string to parse as ``Query.parse`` does,
+            or ``(key, value)`` pairs.
+        :raises louis_py.metadata.InvalidQueryError: ``query`` is a string with
+            a part that is not a ``key:value`` pair.
+        """
+
 class LouisError(Exception): ...
 
 class TableParseError(LouisError):
-    errors: list[str]
-    """One message per problem: a table that could not be found or read, or a
+    errors: list[TableError]
+    """One entry per problem: a table that could not be found or read, or a
     line that could not be parsed."""
 
 class TableCompileError(LouisError):
@@ -110,5 +154,20 @@ class TableCompileError(LouisError):
 
     line: int
     """The line of that rule, counting from 1."""
+
+    kind: CompileErrorKind
+    """What is wrong with the rule."""
+
+    character: str | None
+    """The undefined character a rule uses implicitly."""
+
+    base: str | None
+    """The undefined base character of a ``base`` rule."""
+
+    derived: str | None
+    """The character a ``base`` rule derives from ``base``."""
+
+    swap_class: str | None
+    """The undefined swap class a rule refers to."""
 
 __version__: str

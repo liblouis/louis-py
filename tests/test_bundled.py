@@ -9,6 +9,7 @@ SCRIPT = """\
 import pickle
 
 from host.louis_py import Direction, TableParseError, TranslationMode, Translator
+from host.louis_py.metadata import InvalidQueryError, Query
 
 t = Translator.from_table_source("space \\\\s 0\\nlowercase a 1\\n", Direction.BACKWARD)
 print(t.translate_with_options("\\u2801", mode=TranslationMode.NO_UNDEFINED).output)
@@ -16,6 +17,12 @@ try:
     Translator(["definitely-not-a-real-table.ctb"])
 except TableParseError as error:
     print(type(pickle.loads(pickle.dumps(error))).__module__)
+    print(type(error.errors[0]).__module__)
+    print(type(error.errors[0].kind).__module__)
+try:
+    Query.parse("language=de")
+except InvalidQueryError as error:
+    print(type(error).__module__)
 """
 
 RELOAD_SCRIPT = """\
@@ -79,7 +86,13 @@ def run(script, cwd):
 def test_louis_py_works_inside_another_package(host):
     """A host can bundle louis_py as a subpackage of its own."""
 
-    assert run(SCRIPT, host) == ["a", "host.louis_py"]
+    assert run(SCRIPT, host) == [
+        "a",
+        "host.louis_py",
+        "host.louis_py",
+        "host.louis_py",
+        "host.louis_py.metadata",
+    ]
 
 
 def test_louis_py_works_after_importing_it_again(host):

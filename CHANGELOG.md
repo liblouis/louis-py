@@ -62,11 +62,26 @@ louis-py needs APIs that no louis-rs release has yet.
   and output strings directly. `cursor_position` holds the translated position
   of the cursor passed as `cursor_position=`, and stays `None` when none is
   passed; a cursor past the end of the input maps past the end of the output.
+- `louis_py.metadata` finds tables by the `#+key: value` metadata they carry.
+  `Index` indexes the tables on `search_path=`, or on `LOUIS_TABLE_PATH` when
+  none is given. `Index.find` returns the tables that carry every pair of a
+  query, sorted by path. A query is a `Query`, a string such as
+  `"language:de grade:2"`, or `(key, value)` pairs. `MetadataError` has two
+  subclasses. `InvalidQueryError` is also a `ValueError`; its `pair` is the
+  part that is not `key:value`. `MetadataIOError` is also an `OSError`, raised
+  when a directory cannot be read.
 - Exception hierarchy: `LouisError`, with `TableParseError` when a table cannot
   be found, read or parsed, and `TableCompileError` when a rule refers to
-  something no rule defines. `TableParseError.errors` lists every problem;
-  `TableCompileError.path` and `.line` say where the rule is, `path` being
-  `None` for table source given in memory. Translating itself cannot fail.
+  something no rule defines. Translating itself cannot fail.
+- `TableParseError.errors` lists every problem as a `TableError`. Its `kind` is
+  a `TableErrorKind`. Where they apply, it has the table's `path`, the `line`,
+  the `paths` of an include cycle, the include `depth` limit and the
+  `emphasis_class` of a conflicting `endmodephrase`.
+- `TableCompileError.path` and `.line` say where the rule is, `path` being
+  `None` for table source given in memory. Its `kind` is a
+  `CompileErrorKind`. Where they apply, it has the undefined `character`, the
+  undefined `base` character with the `derived` one, or the undefined
+  `swap_class`.
 - Warnings from louis-rs go to Python's `logging`, under the `louis` logger.
 - Type stubs (`_louis_py.pyi`) and `py.typed` marker.
 - Built with maturin, `abi3-py311` (single wheel for Python 3.11+).

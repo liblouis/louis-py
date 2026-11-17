@@ -18,12 +18,11 @@ def test_from_table_source_accepts_direction():
 
 
 def test_from_table_source_rejects_include():
-    from louis_py import TableParseError, Translator
+    from louis_py import TableErrorKind, TableParseError, Translator
 
     with pytest.raises(TableParseError) as excinfo:
         Translator.from_table_source("include mini.ctb\n")
 
-    errors = excinfo.value.errors
-    assert isinstance(errors, list)
-    assert len(errors) >= 1
-    assert all(isinstance(e, str) for e in errors)
+    [error] = excinfo.value.errors
+    assert error.kind is TableErrorKind.INCLUDES_NOT_SUPPORTED_IN_MEMORY
+    assert (error.path, error.line) == (None, None)

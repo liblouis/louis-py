@@ -1,12 +1,14 @@
 //! PyO3 bindings for the `louis` braille translator.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
+use pyo3::exceptions::{
+    PyBaseException, PyException, PyNotImplementedError, PyTypeError, PyValueError,
+};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyString, PyTuple};
+use pyo3::types::{PyDict, PyString, PyTuple};
 use search_path::SearchPath;
 
 create_exception!(
@@ -31,41 +33,167 @@ create_exception!(
 /// Wrap a `louis::Error` into the appropriate Python exception.
 /// Re-attaches to the interpreter so it can be used directly in `.map_err`.
 fn to_pyerr(err: louis::Error) -> PyErr {
+    Python::attach(|py| louis_exception(py, &err).unwrap_or_else(|failure| failure))
+}
+
+/// `err` as the appropriate Python exception.
+fn louis_exception(py: Python<'_>, err: &louis::Error) -> PyResult<PyErr> {
     match err {
-        louis::Error::Table(ref errs) => {
-            let msgs: Vec<String> = errs.iter().map(ToString::to_string).collect();
+        louis::Error::Table(errors) => {
+            let errors = errors
+                .iter()
+                .map(|error| table_error(py, error))
+                .collect::<PyResult<Vec<_>>>()?;
             let exc = TableParseError::new_err(err.to_string());
-            Python::attach(|py| {
-                let _ = exc.value(py).setattr("errors", msgs);
-            });
-            exc
+            exc.value(py).setattr(intern!(py, "errors"), errors)?;
+            Ok(exc)
         }
-        louis::Error::Compile(ref compile) => {
+        louis::Error::Compile(compile) => {
             let exc = TableCompileError::new_err(err.to_string());
-            Python::attach(|py| {
-                let value = exc.value(py);
-                let _ = value.setattr("path", compile.path());
-                let _ = value.setattr("line", compile.line());
-            });
-            exc
+            let value = exc.value(py);
+            value.setattr(intern!(py, "path"), compile.path())?;
+            value.setattr(intern!(py, "line"), compile.line())?;
+            set_compile_error_kind(value, compile.kind())?;
+            Ok(exc)
         }
-        other => LouisError::new_err(other.to_string()),
+        _ => Ok(LouisError::new_err(err.to_string())),
     }
+}
+
+/// `error` as a `louis_py.TableError`.
+fn table_error<'py>(py: Python<'py>, error: &louis::TableError) -> PyResult<Bound<'py, PyAny>> {
+    use louis::TableError::*;
+    let fields = PyDict::new(py);
+    if let Syntax {
+        path: Some(path), ..
+    }
+    | NotReadable { path, .. }
+    | NotFound(path)
+    | HyphenationNotFound(path)
+    | HyphenationNotReadable { path, .. }
+    | HyphenationSyntax { path, .. } = error
+    {
+        fields.set_item("path", path)?;
+    }
+    let kind = match error {
+        Syntax { line, .. } => {
+            fields.set_item("line", line)?;
+            "SYNTAX"
+        }
+        IncludesNotSupportedInMemory => "INCLUDES_NOT_SUPPORTED_IN_MEMORY",
+        NotReadable { .. } => "NOT_READABLE",
+        NotFound(_) => "NOT_FOUND",
+        HyphenationNotFound(_) => "HYPHENATION_NOT_FOUND",
+        HyphenationNotReadable { .. } => "HYPHENATION_NOT_READABLE",
+        HyphenationSyntax { .. } => "HYPHENATION_SYNTAX",
+        CircularInclude(paths) => {
+            fields.set_item("paths", PyTuple::new(py, paths)?)?;
+            "CIRCULAR_INCLUDE"
+        }
+        IncludeTooDeep(depth) => {
+            fields.set_item("depth", depth)?;
+            "INCLUDE_TOO_DEEP"
+        }
+        ConflictingEndmodephrasePosition(emphasis_class) => {
+            fields.set_item("emphasis_class", emphasis_class)?;
+            "CONFLICTING_ENDMODEPHRASE_POSITION"
+        }
+        ConflictingEndcapsphrasePosition => "CONFLICTING_ENDCAPSPHRASE_POSITION",
+        _ => return Err(unmapped(error)),
+    };
+    fields.set_item("kind", kind_member(py, "TableErrorKind", kind)?)?;
+    fields.set_item("message", error.to_string())?;
+    package(py)?.getattr("TableError")?.call((), Some(&fields))
+}
+
+/// Set `kind` and the attributes of `kind` on the `TableCompileError` `exc`.
+fn set_compile_error_kind(
+    exc: &Bound<'_, PyBaseException>,
+    kind: &louis::CompileErrorKind,
+) -> PyResult<()> {
+    use louis::CompileErrorKind::*;
+    let py = exc.py();
+    for attribute in ["character", "base", "derived", "swap_class"] {
+        exc.setattr(attribute, py.None())?;
+    }
+    let member = match kind {
+        ImplicitCharacterNotDefined(character) => {
+            exc.setattr("character", *character)?;
+            "IMPLICIT_CHARACTER_NOT_DEFINED"
+        }
+        BaseCharacterNotDefined { base, derived } => {
+            exc.setattr("base", *base)?;
+            exc.setattr("derived", *derived)?;
+            "BASE_CHARACTER_NOT_DEFINED"
+        }
+        SwapClassNotDefined(swap_class) => {
+            exc.setattr("swap_class", swap_class)?;
+            "SWAP_CLASS_NOT_DEFINED"
+        }
+        _ => return Err(unmapped(kind)),
+    };
+    exc.setattr("kind", kind_member(py, "CompileErrorKind", member)?)
+}
+
+/// The member `member` of the package's enum `kind`.
+fn kind_member<'py>(py: Python<'py>, kind: &str, member: &str) -> PyResult<Bound<'py, PyAny>> {
+    package(py)?.getattr(kind)?.getattr(member)
+}
+
+/// `NotImplementedError` for a louis-rs `error` that louis-py has no kind for.
+fn unmapped(error: impl std::fmt::Display) -> PyErr {
+    PyNotImplementedError::new_err(format!(
+        "louis-py has no kind for this louis-rs error: {error}"
+    ))
 }
 
 /// The package this module was loaded from.
 static PACKAGE: OnceLock<String> = OnceLock::new();
 
+/// The name of the package this module was loaded from.
+fn package_name() -> &'static str {
+    PACKAGE.get().expect("set when the module is initialized")
+}
+
+/// The package this module was loaded from, imported.
+fn package(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
+    py.import(package_name())
+}
+
+/// Wrap a `louis::metadata::MetadataError` into the matching
+/// `louis_py.metadata` exception.
+fn to_metadata_pyerr(err: louis::metadata::MetadataError) -> PyErr {
+    Python::attach(|py| metadata_exception(py, &err).unwrap_or_else(|failure| failure))
+}
+
+/// `err` as the matching `louis_py.metadata` exception.
+fn metadata_exception(py: Python<'_>, err: &louis::metadata::MetadataError) -> PyResult<PyErr> {
+    use louis::metadata::MetadataError::*;
+    let class = match err {
+        InvalidQuery(_) => "InvalidQueryError",
+        Io(_) => "MetadataIOError",
+        _ => "MetadataError",
+    };
+    let value = py
+        .import(format!("{}.metadata", package_name()))?
+        .getattr(class)?
+        .call1((err.to_string(),))?;
+    if let InvalidQuery(pair) = err {
+        value.setattr(intern!(py, "pair"), pair)?;
+    }
+    Ok(PyErr::from_value(value))
+}
+
 /// Check that `obj` is a member of the enum `class` of the package this module was
 /// loaded from, raising `TypeError` otherwise.
 fn check_enum(obj: &Bound<'_, PyAny>, class: &str) -> PyResult<()> {
-    let package = PACKAGE.get().expect("set when the module is initialized");
-    let expected = obj.py().import(package)?.getattr(class)?;
+    let expected = package(obj.py())?.getattr(class)?;
     if obj.is_instance(&expected)? {
         Ok(())
     } else {
         Err(PyTypeError::new_err(format!(
-            "expected {package}.{class}, not {}",
+            "expected {}.{class}, not {}",
+            package_name(),
             obj.get_type().name()?
         )))
     }
@@ -332,6 +460,90 @@ impl Translator {
     }
 }
 
+/// `pairs`, an iterable of `(key, value)` tuples, as a `louis::metadata::Query`.
+fn query_from_pairs(pairs: &Bound<'_, PyAny>) -> PyResult<louis::metadata::Query> {
+    pairs
+        .try_iter()?
+        .map(|pair| pair?.extract::<(String, String)>())
+        .collect()
+}
+
+/// A query into the metadata of tables: `key:value` pairs that a table must
+/// all carry to match.
+#[pyclass(frozen, eq, module = "louis_py.metadata")]
+#[derive(PartialEq)]
+pub struct Query {
+    inner: louis::metadata::Query,
+}
+
+#[pymethods]
+impl Query {
+    /// Build a query from `(key, value)` pairs.
+    #[new]
+    fn new(pairs: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: query_from_pairs(pairs)?,
+        })
+    }
+
+    /// Parse a query: `key:value` pairs separated by whitespace, such as
+    /// `language:de grade:2`.
+    #[staticmethod]
+    fn parse(text: &str) -> PyResult<Self> {
+        let inner = text.parse().map_err(to_metadata_pyerr)?;
+        Ok(Self { inner })
+    }
+
+    fn __str__(&self) -> String {
+        self.inner.to_string()
+    }
+}
+
+/// A query given as a `Query`, a string to parse or `(key, value)` pairs.
+#[derive(FromPyObject)]
+enum AnyQuery<'py> {
+    Query(Bound<'py, Query>),
+    Text(String),
+    Pairs(Bound<'py, PyAny>),
+}
+
+impl AnyQuery<'_> {
+    fn into_query(self) -> PyResult<louis::metadata::Query> {
+        match self {
+            Self::Query(query) => Ok(query.get().inner.clone()),
+            Self::Text(text) => text.parse().map_err(to_metadata_pyerr),
+            Self::Pairs(pairs) => query_from_pairs(&pairs),
+        }
+    }
+}
+
+/// The `#+key: value` metadata pairs of the tables on a search path, mapped
+/// to the tables that carry them.
+#[pyclass(frozen, module = "louis_py.metadata")]
+pub struct Index {
+    inner: louis::metadata::Index,
+}
+
+#[pymethods]
+impl Index {
+    /// Index the tables in `search_path` when given, otherwise in
+    /// `LOUIS_TABLE_PATH`, as `Translator` does.
+    #[new]
+    #[pyo3(signature = (*, search_path = None))]
+    fn new(py: Python<'_>, search_path: Option<Vec<PathBuf>>) -> PyResult<Self> {
+        let search_path = search_path_or_table_path(search_path);
+        let inner = py
+            .detach(|| louis::metadata::Index::with_search_path(search_path))
+            .map_err(to_metadata_pyerr)?;
+        Ok(Self { inner })
+    }
+
+    /// The tables that carry every pair of `query`, sorted by path.
+    fn find(&self, query: AnyQuery<'_>) -> PyResult<Vec<&Path>> {
+        Ok(self.inner.find(&query.into_query()?))
+    }
+}
+
 /// The `_louis_py` extension module. Public API lives in the `louis_py`
 /// Python package, which re-exports from here.
 #[pymodule]
@@ -355,6 +567,11 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     ];
     for class in types {
         class.setattr(intern!(py, "__module__"), package)?;
+        m.add(class.name()?, class)?;
+    }
+    let metadata = format!("{package}.metadata");
+    for class in [py.get_type::<Index>(), py.get_type::<Query>()] {
+        class.setattr(intern!(py, "__module__"), &metadata)?;
         m.add(class.name()?, class)?;
     }
     Ok(())
