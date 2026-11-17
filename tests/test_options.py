@@ -36,9 +36,9 @@ def test_result_attributes_cannot_be_changed():
     t = Translator(["mini.ctb"])
     r = t.translate_with_options("abc")
     with pytest.raises(AttributeError):
-        r.output_positions.append(3)
+        r.output_positions.append(3)  # ty: ignore[missing-attribute]
     with pytest.raises(TypeError):
-        r.input_positions[0] = 1
+        r.input_positions[0] = 1  # ty: ignore[invalid-assignment]
 
 
 def test_result_attributes_are_built_once():

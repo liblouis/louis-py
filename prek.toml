@@ -54,7 +54,7 @@ hooks = [
 repo = "https://github.com/asottile/add-trailing-comma"
 rev = "v4.0.0"
 hooks = [
-  { id = "add-trailing-comma" }
+  { id = "add-trailing-comma", types = ["file"], types_or = ["python", "pyi"] }
 ]
 
 [[repos]]
@@ -80,24 +80,28 @@ hooks = [
 ]
 
 [[repos]]
+repo = "https://github.com/doublify/pre-commit-rust"
+rev = "v1.0"
+hooks = [
+  { id = "fmt", name = "format with cargo fmt" },
+  {
+    id = "clippy",
+    name = "lint with cargo clippy",
+    types = ["file"],
+    files = '(\.rs|^Cargo\.(toml|lock))$'
+  }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ty-pre-commit"
+rev = "v0.0.104"
+hooks = [
+  { id = "ty", name = "type check with ty" }
+]
+
+[[repos]]
 repo = "local"
 hooks = [
-  {
-    id = "cargo-fmt",
-    name = "format with cargo fmt",
-    entry = "cargo fmt --",
-    language = "system",
-    types = ["rust"],
-    pass_filenames = false
-  },
-  {
-    id = "ty",
-    name = "type check with ty",
-    entry = "uv run ty check python",
-    language = "system",
-    types = ["python"],
-    pass_filenames = false
-  },
   {
     id = "pytest",
     name = "run tests with pytest",

@@ -60,6 +60,7 @@ def test_back_translation_returns_the_emphasis(braille, text, spans):
     t = Translator.from_table_source(ITALIC_TABLE, Direction.BACKWARD)
     r = t.translate_with_options(braille)
     assert r.output == text
+    assert r.emphasis is not None
     assert r.emphasis == spans
     assert tuple(EmphasisSpan(*span) for span in r.emphasis) == spans
 
