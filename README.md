@@ -3,6 +3,16 @@
 Python bindings for [louis](https://github.com/liblouis/louis-rs), a pure-Rust
 braille translator.
 
+louis-py needs Python 3.11 or newer. Install it from PyPI:
+
+```
+pip install louis-py
+```
+
+louis-py comes without tables. Point `LOUIS_TABLE_PATH` at a set of tables,
+such as the `tables` directory of [liblouis](https://github.com/liblouis/liblouis),
+and translate something:
+
 ```python
 from louis_py import Translator, Direction
 
@@ -63,11 +73,23 @@ t = Translator(["en-us-g2.ctb"], braille_encoding=brf)
 t.translate("the")  # "!"
 ```
 
+`louis_py.metadata` finds tables by the `#+key: value` metadata they carry. An
+`Index` reads the tables on the search path, and `find` returns the ones that
+carry every pair of a query:
+
+```python
+from louis_py.metadata import Index
+
+Index().find("language:de grade:2")  # paths of de-g2-detailed.ctb and de-g2.ctb
+```
+
 Warnings from louis-rs, such as an indicator it ignores when back-translating,
 go to Python's `logging`, to loggers named after the louis-rs module, under
 `louis`.
 
-See `python/louis_py/_louis_py.pyi` for the full API.
+The full API is documented in `python/louis_py/`: the classes in
+`_louis_py.pyi`, the enums and table errors in `__init__.py`, and the metadata
+errors in `metadata.py`.
 
 ## Releasing
 
