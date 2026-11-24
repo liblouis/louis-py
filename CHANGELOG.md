@@ -81,6 +81,7 @@ louis-rs 0.4.1.
   undefined `base` character with the `derived` one, or the undefined
   `swap_class`.
 - Warnings from louis-rs go to Python's `logging`, under the `louis` logger.
+- `LOUIS_RS_VERSION`: the version of louis-rs that louis-py is built with.
 - Type stubs (`_louis_py.pyi`) and `py.typed` marker.
 - Built with maturin, `abi3-py311` (single wheel for Python 3.11+).
 

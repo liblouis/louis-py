@@ -87,6 +87,9 @@ Warnings from louis-rs, such as an indicator it ignores when back-translating,
 go to Python's `logging`, to loggers named after the louis-rs module, under
 `louis`.
 
+`louis_py.LOUIS_RS_VERSION` is the version of louis-rs that louis-py is built
+with.
+
 The full API is documented in `python/louis_py/`: the classes in
 `_louis_py.pyi`, the enums and table errors in `__init__.py`, and the metadata
 errors in `metadata.py`.

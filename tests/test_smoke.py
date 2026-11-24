@@ -31,3 +31,14 @@ def test_version_matches_distribution_metadata():
     import louis_py
 
     assert louis_py.__version__ == importlib.metadata.version("louis-py")
+
+
+def test_louis_rs_version_matches_the_locked_louis_rs():
+    import tomllib
+    from pathlib import Path
+
+    import louis_py
+
+    lock = tomllib.loads((Path(__file__).parent.parent / "Cargo.lock").read_text())
+    (locked,) = (p["version"] for p in lock["package"] if p["name"] == "louis-rs")
+    assert louis_py.LOUIS_RS_VERSION == locked

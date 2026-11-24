@@ -557,6 +557,7 @@ fn _louis_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = PACKAGE.set(package.to_owned());
     let _ = pyo3_log::Logger::new(py, pyo3_log::Caching::Nothing)?.install();
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    m.add("LOUIS_RS_VERSION", louis::VERSION)?;
     let types = [
         py.get_type::<BrailleEncoding>(),
         py.get_type::<Translator>(),

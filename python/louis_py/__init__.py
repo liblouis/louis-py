@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ._louis_py import (
+    LOUIS_RS_VERSION,
     BrailleEncoding,
     LouisError,
     TableCompileError,
@@ -140,6 +141,7 @@ class TableError:
 
 
 __all__ = [
+    "LOUIS_RS_VERSION",
     "BrailleEncoding",
     "CompileErrorKind",
     "Direction",

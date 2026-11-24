@@ -171,3 +171,6 @@ class TableCompileError(LouisError):
     """The undefined swap class a rule refers to."""
 
 __version__: str
+
+LOUIS_RS_VERSION: str
+"""The version of louis-rs this module is built with."""
