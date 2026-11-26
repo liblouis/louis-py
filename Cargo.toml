@@ -3,7 +3,7 @@ name = "louis-py"
 version = "0.1.0"
 publish = false
 edition = "2024"
-description = "Python bindings for the louis braille translator"
+description = "Python bindings for the louis-rs braille translator"
 license = "LGPL-2.1-or-later"
 repository = "https://github.com/liblouis/louis-py"
 

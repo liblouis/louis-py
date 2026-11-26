@@ -1,4 +1,4 @@
-"""Python bindings for the louis braille translator."""
+"""Python bindings for the louis-rs braille translator."""
 
 import dataclasses
 import enum
