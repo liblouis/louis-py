@@ -1,8 +1,15 @@
 """Find tables by the ``#+key: value`` metadata they carry, instead of by file
 name."""
 
+from collections.abc import Iterable, Mapping
+from typing import TypeAlias
+
 from . import LouisError
 from ._louis_py import Index, Query
+
+QueryPairs: TypeAlias = Mapping[str, str] | Iterable[tuple[str, str]]
+"""The pairs of a query: a mapping of keys to values, or ``(key, value)``
+pairs."""
 
 
 class MetadataError(LouisError):
@@ -26,4 +33,5 @@ __all__ = [
     "MetadataError",
     "MetadataIOError",
     "Query",
+    "QueryPairs",
 ]

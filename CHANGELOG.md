@@ -13,6 +13,12 @@ Each release names the louis-rs version it is built on.
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- `Query` and `Index.find` take a mapping of keys to values, such as a dict.
+- `louis_py.metadata.QueryPairs` is the type of the pairs that `Query` and
+  `Index.find` take.
+
 ## [0.1.0] - 2026-11-26
 
 This is the first release of louis-py, the Python bindings for the

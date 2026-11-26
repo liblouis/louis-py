@@ -8,7 +8,7 @@ use pyo3::exceptions::{
 };
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyString, PyTuple};
+use pyo3::types::{PyDict, PyMapping, PyString, PyTuple};
 use search_path::SearchPath;
 
 create_exception!(
@@ -460,8 +460,13 @@ impl Translator {
     }
 }
 
-/// `pairs`, an iterable of `(key, value)` tuples, as a `louis::metadata::Query`.
+/// `pairs`, a mapping of keys to values or an iterable of `(key, value)`
+/// tuples, as a `louis::metadata::Query`.
 fn query_from_pairs(pairs: &Bound<'_, PyAny>) -> PyResult<louis::metadata::Query> {
+    let pairs = match pairs.cast::<PyMapping>() {
+        Ok(mapping) => mapping.items()?.into_any(),
+        Err(_) => pairs.clone(),
+    };
     pairs
         .try_iter()?
         .map(|pair| pair?.extract::<(String, String)>())
@@ -478,7 +483,8 @@ pub struct Query {
 
 #[pymethods]
 impl Query {
-    /// Build a query from `(key, value)` pairs.
+    /// Build a query from a mapping of keys to values or from `(key, value)`
+    /// pairs.
     #[new]
     fn new(pairs: &Bound<'_, PyAny>) -> PyResult<Self> {
         Ok(Self {
@@ -499,7 +505,8 @@ impl Query {
     }
 }
 
-/// A query given as a `Query`, a string to parse or `(key, value)` pairs.
+/// A query given as a `Query`, a string to parse, a mapping of keys to values
+/// or `(key, value)` pairs.
 #[derive(FromPyObject)]
 enum AnyQuery<'py> {
     Query(Bound<'py, Query>),

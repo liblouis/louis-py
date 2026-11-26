@@ -22,6 +22,7 @@ def test_index_finds_the_tables_carrying_every_pair_sorted(tables):
     assert index.find(Query.parse("language:de grade:2")) == expected
     assert index.find("language:de grade:2") == expected
     assert index.find({"language": "de", "grade": "2"}.items()) == expected
+    assert index.find({"language": "de", "grade": "2"}) == expected
     assert all(isinstance(path, Path) for path in index.find("grade:2"))
 
 
@@ -64,7 +65,16 @@ def test_query_parses_pairs_separated_by_whitespace():
     assert query == Query(
         (key, value) for key, value in [("grade", "2"), ("language", "de")]
     )
+    assert query == Query({"grade": "2", "language": "de"})
     assert str(query) == "grade:2 language:de"
+
+
+def test_query_pairs_is_a_mapping_or_key_value_pairs():
+    from collections.abc import Iterable, Mapping
+
+    from louis_py.metadata import QueryPairs
+
+    assert QueryPairs == Mapping[str, str] | Iterable[tuple[str, str]]
 
 
 def test_query_prints_its_pairs_sorted():

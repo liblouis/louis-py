@@ -1,8 +1,9 @@
 import os
 import pathlib
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from . import CompileErrorKind, Direction, TableError, TranslationMode
+from .metadata import QueryPairs
 
 class TranslationResult:
     output: str
@@ -100,8 +101,9 @@ class Query:
     """A query into the metadata of tables: ``key:value`` pairs that a table
     must all carry to match."""
 
-    def __init__(self, pairs: Iterable[tuple[str, str]]) -> None:
-        """Build a query from ``(key, value)`` pairs."""
+    def __init__(self, pairs: QueryPairs) -> None:
+        """Build a query from a mapping of keys to values or from
+        ``(key, value)`` pairs."""
 
     @staticmethod
     def parse(text: str) -> Query:
@@ -130,12 +132,12 @@ class Index:
 
     def find(
         self,
-        query: Query | str | Iterable[tuple[str, str]],
+        query: Query | str | QueryPairs,
     ) -> list[pathlib.Path]:
         """The tables that carry every pair of ``query``, sorted by path.
 
         :param query: A ``Query``, a string to parse as ``Query.parse`` does,
-            or ``(key, value)`` pairs.
+            a mapping of keys to values, or ``(key, value)`` pairs.
         :raises louis_py.metadata.InvalidQueryError: ``query`` is a string with
             a part that is not a ``key:value`` pair.
         """
