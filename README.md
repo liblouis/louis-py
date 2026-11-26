@@ -101,3 +101,58 @@ The full API is documented in `python/louis_py/`:
 - the classes in `_louis_py.pyi`
 - the enums and table errors in `__init__.py`
 - the metadata errors in `metadata.py`
+
+## Coming from the liblouis Python bindings
+
+The [`louis` module](https://github.com/liblouis/liblouis/blob/master/python/louis/__init__.py.in)
+of liblouis takes the tables with every call. The liblouis manual describes it
+under [Python bindings](https://liblouis.io/documentation/liblouis/Python-bindings.html).
+louis-py compiles the tables once into a `Translator`, which translates in one
+direction. Build one with `t = Translator(tables)` and use it for each string.
+
+The liblouis names below are written as if imported with `from louis import ...`.
+
+| liblouis                                        | louis-py                                                                        |
+|-------------------------------------------------|---------------------------------------------------------------------------------|
+| `translateString(tables, text)`                 | `t.translate(text)`                                                             |
+| `translate(tables, text, cursorPos=c)`          | `t.translate_with_options(text, cursor_position=c)`                             |
+| `backTranslateString`, `backTranslate`          | the same, with `Translator(tables, Direction.BACKWARD)`                         |
+| the tuple from `translate` and `backTranslate`  | the result's `output`, `input_positions`, `output_positions`, `cursor_position` |
+| `mode=`                                         | `mode=` with `TranslationMode` members                                          |
+| `typeform=`                                     | `emphasis=` with `EmphasisSpan`s                                                |
+| the `typeform` list that back-translation fills | the result's `emphasis`                                                         |
+| `getTypeformForEmphClass`                       | not needed: a span names its class                                              |
+| a display table in the table list               | `braille_encoding=`                                                             |
+| `dotsIO`, `ucBrl`                               | not needed: braille is Unicode braille by default                               |
+| `checkTable(tables)`                            | `Translator(tables)`                                                            |
+| `findTables({"language": "de"})`                | `Index().find({"language": "de"})`                                              |
+| `registerLogCallback`, `setLogLevel`            | the `louis` logger in `logging`                                                 |
+| `version()`                                     | `LOUIS_RS_VERSION`                                                              |
+| `charSize()`                                    | not needed: text is a `str`                                                     |
+| the environment variable `LOUIS_TABLEPATH`      | the environment variable `LOUIS_TABLE_PATH`, or `search_path=`                  |
+
+Each liblouis mode except `dotsIO` and `ucBrl` has a `TranslationMode` member,
+such as `COMPBRL_AT_CURSOR` for `compbrlAtCursor`. Combine members with `|`.
+
+A typeform has a bit per emphasis class. `emph_1` is the first class in
+`t.emphasis_classes`, `emph_2` the second, and so on.
+
+`Index().find` returns the paths of the tables that carry every pair of the
+query, sorted by path. `find` also takes a string, such as `"language:de"`.
+louis-rs does not rank partial matches yet, so `findTable` has no
+counterpart.
+
+Building a `Translator` raises `TableParseError` or `TableCompileError` where
+liblouis raises `RuntimeError`. Both derive from `LouisError`, so
+`except RuntimeError` does not catch them.
+
+`LOUIS_TABLEPATH` separates its directories with commas. `LOUIS_TABLE_PATH`
+separates them like `PATH`. Without `LOUIS_TABLE_PATH` or `search_path=`,
+louis-py looks for tables in the current directory.
+
+louis-py has no counterpart for:
+
+- `hyphenate`, `charToDots` and `dotsToChar`
+- `compileString`
+- `getTableInfo` and `listTables`
+- the `no_translate` and `no_contract` typeforms
