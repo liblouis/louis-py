@@ -13,6 +13,8 @@ Each release names the louis-rs version it is built on.
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.0] - 2026-11-26
+
 This is the first release of louis-py, the Python bindings for the
 [louis-rs](https://github.com/liblouis/louis-rs) braille translator. It is
 built on louis-rs 0.4.1.
@@ -93,4 +95,5 @@ built on louis-rs 0.4.1.
   3.11 and later.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/liblouis/louis-py/compare/5ca872bf133effa74e3d2e16b7a4647c8a57a4b4...HEAD
+[Unreleased]: https://github.com/liblouis/louis-py/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/liblouis/louis-py/compare/5ca872bf133effa74e3d2e16b7a4647c8a57a4b4...v0.1.0
